@@ -1,0 +1,2 @@
+# Ignore all files in the components directory from being treated as routes
+**/*
