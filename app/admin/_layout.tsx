@@ -39,12 +39,14 @@ export default function AdminLayout() {
     <View style={styles.container}>
       <AdminBackground />
       <AdminTopBar adminName={user?.name || "Admin"} onLogout={logout} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: "transparent" },
-        }}
-      />
+      <View style={styles.contentContainer}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: "transparent" },
+          }}
+        />
+      </View>
     </View>
   );
 }
@@ -53,6 +55,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000000",
+  },
+  contentContainer: {
+    flex: 1,
   },
   loadingContainer: {
     justifyContent: "center",

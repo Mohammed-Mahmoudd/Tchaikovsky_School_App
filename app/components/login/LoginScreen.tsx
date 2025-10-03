@@ -129,138 +129,145 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardContainer}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContentContainer}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
         >
-          {/* Welcome Header */}
-          <Animated.View
-            style={[
-              styles.welcomeHeader,
-              {
-                opacity: fadeAnim,
-              },
-            ]}
-          >
-            <Text style={styles.welcomeText}>Welcome Back</Text>
-            <View style={styles.welcomeUnderline} />
-          </Animated.View>
-
-          {/* Logo Section */}
-          <Animated.View
-            style={[
-              styles.logoContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ scale: scaleAnim }],
-              },
-            ]}
-          >
-            <View style={styles.logoWrapper}>
-              <View style={styles.logoGlow} />
-              <Image
-                source={require("../../../assets/appLogo.png")}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={styles.schoolName}>Tchaikovsky School</Text>
-            <Text style={styles.subtitle}>Excellence in Musical Education</Text>
-            <View style={styles.decorativeDots}>
-              <View style={styles.dot} />
-              <View style={styles.dot} />
-              <View style={styles.dot} />
-            </View>
-          </Animated.View>
-
-          {/* Login Form */}
-          <Animated.View
-            style={[
-              styles.formContainer,
-              {
-                opacity: fadeAnim,
-              },
-            ]}
-          >
-            <View style={styles.formHeader}>
-              <Text style={styles.formTitle}>Sign In</Text>
-              <Text style={styles.formSubtitle}>
-                Enter your credentials to continue
-              </Text>
-            </View>
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Email</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Enter your email"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Password</Text>
-              <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Enter your password"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            {/* Keep me logged in checkbox */}
-            <TouchableOpacity
-              style={styles.checkboxContainer}
-              onPress={() => setKeepLoggedIn(!keepLoggedIn)}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  keepLoggedIn && styles.checkboxChecked,
-                ]}
-              >
-                {keepLoggedIn && <Text style={styles.checkmark}>✓</Text>}
-              </View>
-              <Text style={styles.checkboxText}>Keep me logged in</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
+          <View style={styles.contentContainer}>
+            {/* Welcome Header */}
+            <Animated.View
               style={[
-                styles.loginButton,
-                isLoading && styles.loginButtonDisabled,
+                styles.welcomeHeader,
+                {
+                  opacity: fadeAnim,
+                },
               ]}
-              onPress={handleLogin}
-              disabled={isLoading}
             >
-              <View style={styles.loginButtonGradient}>
-                <Text style={styles.loginButtonText}>
-                  {isLoading ? "Signing In..." : "Sign In"}
+              <Text style={styles.welcomeText}>Welcome Back</Text>
+              <View style={styles.welcomeUnderline} />
+            </Animated.View>
+
+            {/* Logo Section */}
+            <Animated.View
+              style={[
+                styles.logoContainer,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ scale: scaleAnim }],
+                },
+              ]}
+            >
+              <View style={styles.logoWrapper}>
+                <View style={styles.logoGlow} />
+                <Image
+                  source={require("../../../assets/appLogo.png")}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={styles.schoolName}>Tchaikovsky School</Text>
+              <Text style={styles.subtitle}>
+                Excellence in Musical Education
+              </Text>
+              <View style={styles.decorativeDots}>
+                <View style={styles.dot} />
+                <View style={styles.dot} />
+                <View style={styles.dot} />
+              </View>
+            </Animated.View>
+
+            {/* Login Form */}
+            <Animated.View
+              style={[
+                styles.formContainer,
+                {
+                  opacity: fadeAnim,
+                },
+              ]}
+            >
+              <View style={styles.formHeader}>
+                <Text style={styles.formTitle}>Sign In</Text>
+                <Text style={styles.formSubtitle}>
+                  Enter your credentials to continue
                 </Text>
               </View>
-            </TouchableOpacity>
-          </Animated.View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Enter your email"
+                  placeholderTextColor="rgba(255,255,255,0.6)"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
 
-          {/* Footer */}
-          <View style={styles.footer}>
-            <View style={styles.footerDivider} />
-            <Text style={styles.footerText}>
-              Don't have an account?{" "}
-              <Text style={styles.signUpText}>Contact Us</Text>
-            </Text>
-            <View style={styles.brandingFooter}>
-              <Text style={styles.brandingText}>
-                Powered by Tchaikovsky School
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Password</Text>
+                <TextInput
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Enter your password"
+                  placeholderTextColor="rgba(255,255,255,0.6)"
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              {/* Keep me logged in checkbox */}
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setKeepLoggedIn(!keepLoggedIn)}
+              >
+                <View
+                  style={[
+                    styles.checkbox,
+                    keepLoggedIn && styles.checkboxChecked,
+                  ]}
+                >
+                  {keepLoggedIn && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <Text style={styles.checkboxText}>Keep me logged in</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.loginButton,
+                  isLoading && styles.loginButtonDisabled,
+                ]}
+                onPress={handleLogin}
+                disabled={isLoading}
+              >
+                <View style={styles.loginButtonGradient}>
+                  <Text style={styles.loginButtonText}>
+                    {isLoading ? "Signing In..." : "Sign In"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <View style={styles.footerDivider} />
+              <Text style={styles.footerText}>
+                Don't have an account?{" "}
+                <Text style={styles.signUpText}>Contact Us</Text>
               </Text>
-              <Text style={styles.versionText}>v1.0.0</Text>
+              <View style={styles.brandingFooter}>
+                <Text style={styles.brandingText}>
+                  Powered by Tchaikovsky School
+                </Text>
+                <Text style={styles.versionText}>v1.0.0</Text>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -319,43 +326,48 @@ const styles = StyleSheet.create({
     flex: 1,
     zIndex: 2,
   },
-  scrollContainer: {
+  scrollContentContainer: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40, // Reduced since we removed status bar
-    paddingBottom: 40,
+    minHeight: height,
+  },
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: width * 0.05, // 5% of screen width
+    paddingVertical: height * 0.02, // 2% of screen height
+    justifyContent: "space-between",
+    minHeight: height * 0.9, // Ensure minimum height for proper spacing
   },
   welcomeHeader: {
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: height * 0.015, // 1.5% of screen height
   },
   welcomeText: {
-    fontSize: 24,
+    fontSize: height * 0.025, // 2.5% of screen height
     fontWeight: "300",
     color: "rgba(255,255,255,0.9)",
-    letterSpacing: 2,
+    letterSpacing: 1,
     textAlign: "center",
   },
   welcomeUnderline: {
-    width: 60,
+    width: width * 0.12, // 12% of screen width
     height: 2,
     backgroundColor: "#1c463a",
-    marginTop: 8,
+    marginTop: height * 0.008, // 0.8% of screen height
     borderRadius: 1,
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: 40,
-    marginTop: 20, // Reduced since we removed status bar
+    marginBottom: height * 0.02, // 2% of screen height
+    marginTop: height * 0.01, // 1% of screen height
   },
   logoWrapper: {
-    width: 140,
-    height: 140,
-    borderRadius: 70, // Perfect circle (50% of width/height)
+    width: Math.min(140, width * 0.35), // Responsive but max 140px
+    height: Math.min(140, width * 0.35),
+    borderRadius: Math.min(70, width * 0.175), // Perfect circle
     backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 25,
+    marginBottom: height * 0.025, // 2.5% of screen height
     borderWidth: 3,
     borderColor: "rgba(255,255,255,0.3)",
     shadowColor: "#ffffff",
@@ -367,9 +379,9 @@ const styles = StyleSheet.create({
   },
   logoGlow: {
     position: "absolute",
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    width: Math.min(160, width * 0.4), // Responsive but max 160px
+    height: Math.min(160, width * 0.4),
+    borderRadius: Math.min(80, width * 0.2),
     backgroundColor: "rgba(28,70,58,0.1)",
     top: -10,
     left: -10,
@@ -377,101 +389,101 @@ const styles = StyleSheet.create({
   decorativeDots: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 15,
-    gap: 8,
+    marginTop: height * 0.015, // 1.5% of screen height
+    gap: width * 0.02, // 2% of screen width
   },
   dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: Math.max(4, width * 0.015), // Responsive but min 4px
+    height: Math.max(4, width * 0.015),
+    borderRadius: Math.max(2, width * 0.0075),
     backgroundColor: "rgba(255,255,255,0.4)",
   },
   logo: {
-    width: 90,
-    height: 90,
-    borderRadius: 45, // Make the logo itself circular too
+    width: Math.min(90, width * 0.225), // Responsive but max 90px
+    height: Math.min(90, width * 0.225),
+    borderRadius: Math.min(45, width * 0.1125), // Perfect circle
   },
   schoolName: {
-    fontSize: 32,
+    fontSize: height * 0.032, // 3.2% of screen height
     fontWeight: "bold",
     color: "#ffffff",
     textAlign: "center",
-    marginBottom: 8,
-    letterSpacing: 1,
+    marginBottom: height * 0.008, // 0.8% of screen height
+    letterSpacing: 0.5,
     textShadowColor: "rgba(0,0,0,0.3)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: height * 0.018, // 1.8% of screen height
     color: "rgba(255,255,255,0.9)",
     textAlign: "center",
     fontStyle: "italic",
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   formContainer: {
-    flex: 1,
     backgroundColor: "rgba(255,255,255,0.02)",
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: height * 0.02, // 2% of screen height
+    padding: width * 0.05, // 5% of screen width
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
+    marginVertical: height * 0.01, // 1% of screen height
   },
   formHeader: {
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: height * 0.02, // 2% of screen height
   },
   formTitle: {
-    fontSize: 28,
+    fontSize: height * 0.028, // 2.8% of screen height
     fontWeight: "bold",
     color: "#ffffff",
-    marginBottom: 8,
-    letterSpacing: 1,
-  },
-  formSubtitle: {
-    fontSize: 16,
-    color: "rgba(255,255,255,0.7)",
-    textAlign: "center",
+    marginBottom: height * 0.008, // 0.8% of screen height
     letterSpacing: 0.5,
   },
+  formSubtitle: {
+    fontSize: height * 0.016, // 1.6% of screen height
+    color: "rgba(255,255,255,0.7)",
+    textAlign: "center",
+    letterSpacing: 0.3,
+  },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: height * 0.015, // 1.5% of screen height
   },
   inputLabel: {
-    fontSize: 16,
+    fontSize: height * 0.016, // 1.6% of screen height
     color: "#ffffff",
-    marginBottom: 8,
+    marginBottom: height * 0.008, // 0.8% of screen height
     fontWeight: "500",
   },
   input: {
-    height: 58,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    fontSize: 16,
+    height: height * 0.06, // 6% of screen height
+    backgroundColor: "transparent",
+    borderRadius: height * 0.015, // 1.5% of screen height
+    paddingHorizontal: width * 0.05, // 5% of screen width
+    fontSize: height * 0.016, // 1.6% of screen height
     color: "#ffffff",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.25)",
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+    shadowColor: "transparent",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   checkboxContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 25,
-    paddingVertical: 5,
+    marginBottom: height * 0.02, // 2% of screen height
+    paddingVertical: height * 0.005, // 0.5% of screen height
   },
   checkbox: {
-    width: 22,
-    height: 22,
+    width: height * 0.025, // 2.5% of screen height
+    height: height * 0.025,
     borderRadius: 4,
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.4)",
     backgroundColor: "rgba(255,255,255,0.1)",
-    marginRight: 12,
+    marginRight: width * 0.03, // 3% of screen width
     justifyContent: "center",
     alignItems: "center",
   },
@@ -481,19 +493,19 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     color: "#1c463a",
-    fontSize: 14,
+    fontSize: height * 0.014, // 1.4% of screen height
     fontWeight: "bold",
   },
   checkboxText: {
     color: "rgba(255,255,255,0.9)",
-    fontSize: 16,
+    fontSize: height * 0.016, // 1.6% of screen height
     fontWeight: "500",
   },
   loginButton: {
-    height: 58,
-    borderRadius: 16,
+    height: height * 0.06, // 6% of screen height
+    borderRadius: height * 0.015, // 1.5% of screen height
     overflow: "hidden",
-    marginBottom: 20,
+    marginBottom: height * 0.015, // 1.5% of screen height
     shadowColor: "#ffffff",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -508,44 +520,44 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#ffffff",
-    borderRadius: 16,
+    borderRadius: height * 0.015, // 1.5% of screen height
   },
   loginButtonText: {
-    fontSize: 19,
+    fontSize: height * 0.02, // 2% of screen height
     fontWeight: "bold",
     color: "#1c463a",
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   footer: {
     alignItems: "center",
-    marginTop: 40,
+    marginTop: height * 0.015, // 1.5% of screen height
   },
   footerDivider: {
-    width: 100,
+    width: width * 0.25, // 25% of screen width
     height: 1,
     backgroundColor: "rgba(255,255,255,0.2)",
-    marginBottom: 20,
+    marginBottom: height * 0.015, // 1.5% of screen height
   },
   brandingFooter: {
     alignItems: "center",
-    marginTop: 20,
-    paddingTop: 15,
+    marginTop: height * 0.01, // 1% of screen height
+    paddingTop: height * 0.01, // 1% of screen height
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.1)",
   },
   brandingText: {
-    fontSize: 12,
+    fontSize: height * 0.012, // 1.2% of screen height
     color: "rgba(255,255,255,0.5)",
-    marginBottom: 4,
+    marginBottom: height * 0.004, // 0.4% of screen height
   },
   versionText: {
-    fontSize: 10,
+    fontSize: height * 0.01, // 1% of screen height
     color: "rgba(255,255,255,0.3)",
     fontWeight: "300",
   },
   footerText: {
     color: "rgba(255,255,255,0.8)",
-    fontSize: 14,
+    fontSize: height * 0.014, // 1.4% of screen height
   },
   signUpText: {
     color: "#ffffff",

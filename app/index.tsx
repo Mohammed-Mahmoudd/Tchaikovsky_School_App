@@ -11,6 +11,10 @@ function AppContent() {
   useEffect(() => {
     if (isLoggedIn && user?.userType === 'admin') {
       router.replace('/admin' as any);
+    } else if (isLoggedIn && user?.userType === 'instructor') {
+      router.replace('/instructor' as any);
+    } else if (isLoggedIn && user?.userType === 'student') {
+      router.replace('/student' as any);
     }
   }, [isLoggedIn, user]);
 
@@ -28,8 +32,8 @@ function AppContent() {
     return <LoginScreen onLogin={() => {}} />;
   }
 
-  // If admin, don't render anything here as we're routing to /admin
-  if (user?.userType === 'admin') {
+  // If admin, instructor, or student, don't render anything here as we're routing to their respective dashboards
+  if (user?.userType === 'admin' || user?.userType === 'instructor' || user?.userType === 'student') {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#ffffff" />
@@ -37,7 +41,7 @@ function AppContent() {
     );
   }
 
-  // Show user dashboard for students and instructors
+  // Show user dashboard for students only
   return <UserDashboard />;
 }
 

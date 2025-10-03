@@ -16,10 +16,7 @@ interface AdminTopBarProps {
   onLogout: () => void;
 }
 
-export function AdminTopBar({
-  adminName,
-  onLogout,
-}: AdminTopBarProps) {
+export function AdminTopBar({ adminName, onLogout }: AdminTopBarProps) {
   const pathname = usePathname();
 
   const getScreenTitle = () => {
@@ -70,12 +67,10 @@ export function AdminTopBar({
           </View>
 
           <View style={styles.rightSection}>
-            <View style={styles.adminInfo}>
-              <Text style={styles.welcomeText}>Welcome,</Text>
-              <Text style={styles.adminName}>{adminName}</Text>
-            </View>
-
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
               <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
               <Text style={styles.logoutText}>Logout</Text>
             </TouchableOpacity>
@@ -133,6 +128,7 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingHorizontal: 24,
+    paddingTop: 20,
     paddingBottom: 20,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
@@ -144,7 +140,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 12,
+    paddingTop: 8,
     marginBottom: 20,
   },
   leftSection: {
@@ -169,20 +165,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   screenTitle: {
-    fontSize: 28,
+    fontSize: 16,
     fontWeight: "800",
     color: "#FFFFFF",
-    marginBottom: 4,
-    letterSpacing: 0.5,
+    marginBottom: 2,
+    letterSpacing: 0.3,
     textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   adminLabel: {
-    fontSize: 13,
+    fontSize: 10,
     color: "rgba(255,255,255,0.8)",
     textTransform: "uppercase",
-    letterSpacing: 1.2,
+    letterSpacing: 0.8,
     fontWeight: "600",
   },
   rightSection: {
@@ -220,9 +216,9 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: "#FFFFFF",
-    fontSize: 15,
+    fontSize: 11,
     fontWeight: "600",
-    marginLeft: 6,
+    marginLeft: 4,
   },
   navigationContainer: {
     flexDirection: "row",
@@ -251,15 +247,15 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   navPillText: {
-    fontSize: 13,
+    fontSize: 10,
     color: "rgba(255,255,255,0.8)",
-    marginLeft: 6,
+    marginLeft: 4,
     fontWeight: "600",
   },
   navPillTextActive: {
-    fontSize: 13,
+    fontSize: 10,
     color: "#FFFFFF",
-    marginLeft: 6,
+    marginLeft: 4,
     fontWeight: "700",
   },
 });

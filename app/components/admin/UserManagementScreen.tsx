@@ -9,10 +9,36 @@ import {
   Alert,
   Modal,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../../supabase.js";
-import { Student, Instructor } from "../../services/authService";
+import { Instructor } from "../../services/authService";
+
+interface Student {
+  id: string;
+  name: string;
+  student_email: string;
+  father_email: string;
+  user_id: string;
+  mother_email: string;
+  online_instructor_name: string;
+  online_instructor_id: string;
+  theory_instructor_name: string;
+  theory_instructor_id: string;
+  in_person_name: string;
+  in_person_id: string;
+  created_at: string;
+  instrument: string;
+  avatar: string;
+  color: string;
+  password?: string;
+  father_phone?: string;
+  mother_phone?: string;
+  student_phone_number?: string;
+  second_inperson_id?: string;
+  second_inperson_name?: string;
+}
 
 const { width } = Dimensions.get("window");
 
@@ -30,9 +56,16 @@ export function UserManagementScreen({ onBack }: UserManagementScreenProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [studentCount, setStudentCount] = useState(0);
+  const [instructorCount, setInstructorCount] = useState(0);
+  const [availableInstructors, setAvailableInstructors] = useState<
+    Instructor[]
+  >([]);
 
   useEffect(() => {
     loadUsers();
+    loadCounts();
+    loadAvailableInstructors();
   }, [activeTab]);
 
   const loadUsers = async () => {
@@ -63,6 +96,36 @@ export function UserManagementScreen({ onBack }: UserManagementScreenProps) {
     }
   };
 
+  const loadCounts = async () => {
+    try {
+      const [studentsResult, instructorsResult] = await Promise.all([
+        supabase.from("students").select("id", { count: "exact", head: true }),
+        supabase
+          .from("instructors")
+          .select("id", { count: "exact", head: true }),
+      ]);
+
+      setStudentCount(studentsResult.count || 0);
+      setInstructorCount(instructorsResult.count || 0);
+    } catch (error) {
+      console.error("Error loading counts:", error);
+    }
+  };
+
+  const loadAvailableInstructors = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("instructors")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+      setAvailableInstructors(data || []);
+    } catch (error) {
+      console.error("Error loading available instructors:", error);
+    }
+  };
+
   const handleDeleteUser = (user: any) => {
     Alert.alert(
       "Delete User",
@@ -89,6 +152,7 @@ export function UserManagementScreen({ onBack }: UserManagementScreenProps) {
 
       Alert.alert("Success", "User deleted successfully");
       loadUsers();
+      loadCounts(); // Update the counts after deletion
     } catch (error) {
       console.error("Error deleting user:", error);
       Alert.alert("Error", "Failed to delete user");
@@ -235,7 +299,7 @@ export function UserManagementScreen({ onBack }: UserManagementScreenProps) {
               activeTab === "students" && styles.activeTabText,
             ]}
           >
-            Students ({students.length})
+            Students ({studentCount})
           </Text>
         </TouchableOpacity>
 
@@ -256,7 +320,7 @@ export function UserManagementScreen({ onBack }: UserManagementScreenProps) {
               activeTab === "instructors" && styles.activeTabText,
             ]}
           >
-            Instructors ({instructors.length})
+            Instructors ({instructorCount})
           </Text>
         </TouchableOpacity>
       </View>
@@ -300,6 +364,7 @@ export function UserManagementScreen({ onBack }: UserManagementScreenProps) {
         visible={showCreateModal || !!editingUser}
         userType={activeTab}
         editingUser={editingUser}
+        availableInstructors={availableInstructors}
         onClose={() => {
           setShowCreateModal(false);
           setEditingUser(null);
@@ -308,6 +373,7 @@ export function UserManagementScreen({ onBack }: UserManagementScreenProps) {
           setShowCreateModal(false);
           setEditingUser(null);
           loadUsers();
+          loadCounts();
         }}
       />
     </View>
@@ -319,11 +385,25 @@ function CreateUserModal({
   visible,
   userType,
   editingUser,
+  availableInstructors,
   onClose,
   onSuccess,
 }: any) {
   const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(false);
+  const [showInstructorModal, setShowInstructorModal] = useState(false);
+  const [instructorType, setInstructorType] = useState<string>("");
+  const [showInstrumentModal, setShowInstrumentModal] = useState(false);
+  const [showInstructorRoleModal, setShowInstructorRoleModal] = useState(false);
+  const [showInstructorTypeModal, setShowInstructorTypeModal] = useState(false);
+
+  const instruments = ["Piano", "Guitar", "Violin"];
+  const instructorRoles = [
+    "Online_Instructor",
+    "Theory_Instructor",
+    "In_person",
+  ];
+  const instructorTypes = ["Piano", "Guitar", "Violin", "Vocal", "Theory"];
 
   useEffect(() => {
     if (editingUser) {
@@ -333,29 +413,156 @@ function CreateUserModal({
     }
   }, [editingUser]);
 
+  const showInstructorPicker = (type: string) => {
+    setInstructorType(type);
+    setShowInstructorModal(true);
+  };
+
+  const selectInstructor = (instructor: Instructor) => {
+    const updates: any = {};
+
+    if (instructorType === "online") {
+      updates.online_instructor_id = instructor.id;
+      updates.online_instructor_name = instructor.name;
+    } else if (instructorType === "theory") {
+      updates.theory_instructor_id = instructor.id;
+      updates.theory_instructor_name = instructor.name;
+    } else if (instructorType === "in_person") {
+      updates.in_person_id = instructor.id;
+      updates.in_person_name = instructor.name;
+    } else if (instructorType === "second_inperson") {
+      updates.second_inperson_id = instructor.id;
+      updates.second_inperson_name = instructor.name;
+    }
+
+    setFormData({ ...formData, ...updates });
+    setShowInstructorModal(false);
+  };
+
+  const selectInstrument = (instrument: string) => {
+    setFormData({ ...formData, instrument });
+    setShowInstrumentModal(false);
+  };
+
+  const selectInstructorRole = (role: string) => {
+    setFormData({ ...formData, role });
+    setShowInstructorRoleModal(false);
+  };
+
+  const selectInstructorType = (type: string) => {
+    setFormData({ ...formData, type });
+    setShowInstructorTypeModal(false);
+  };
+
+  const getFilteredInstructors = () => {
+    if (!instructorType) return availableInstructors;
+
+    return availableInstructors.filter((instructor: Instructor) => {
+      if (instructorType === "online") {
+        return instructor.role === "Online_Instructor";
+      } else if (instructorType === "theory") {
+        return instructor.role === "Theory_Instructor";
+      } else if (
+        instructorType === "in_person" ||
+        instructorType === "second_inperson"
+      ) {
+        return instructor.role === "In_person";
+      }
+      return true;
+    });
+  };
+
   const handleSave = async () => {
-    if (!formData.name || !formData.email) {
-      Alert.alert("Error", "Name and email are required");
+    if (!formData.name) {
+      Alert.alert("Error", "Name is required");
       return;
+    }
+
+    // Validate required fields based on user type
+    if (userType === "students") {
+      if (!formData.instrument) {
+        Alert.alert("Error", "Instrument is required for students");
+        return;
+      }
+      if (!formData.password) {
+        Alert.alert("Error", "Password is required for student account");
+        return;
+      }
+    } else if (userType === "instructors") {
+      if (!formData.email || !formData.role) {
+        Alert.alert("Error", "Email and role are required for instructors");
+        return;
+      }
     }
 
     setLoading(true);
     try {
+      let dataToSave = { ...formData };
+
+      // Prepare data based on user type
+      if (userType === "students") {
+        // Student data mapping
+        dataToSave = {
+          name: formData.name,
+          instrument: formData.instrument,
+          avatar: formData.avatar || null,
+          color: formData.color || "#4CAF50",
+          student_email: formData.student_email || null,
+          father_email: formData.father_email || null,
+          mother_email: formData.mother_email || null,
+          online_instructor_name: formData.online_instructor_name || null,
+          theory_instructor_name: formData.theory_instructor_name || null,
+          in_person_name: formData.in_person_name || null,
+          online_instructor_id: formData.online_instructor_id || null,
+          theory_instructor_id: formData.theory_instructor_id || null,
+          in_person_id: formData.in_person_id || null,
+          password: formData.password,
+          father_phone: formData.father_phone || null,
+          mother_phone: formData.mother_phone || null,
+          student_phone_number: formData.student_phone_number || null,
+          second_inperson_id: formData.second_inperson_id || null,
+          second_inperson_name: formData.second_inperson_name || null,
+        };
+      } else if (userType === "instructors") {
+        // Instructor data mapping
+        dataToSave = {
+          name: formData.name,
+          email: formData.email,
+          avatar: formData.avatar || null,
+          color: formData.color || "#2196F3",
+          role: formData.role,
+          password: formData.password || "defaultpass123",
+          type: formData.type || null,
+          phone: formData.phone || null,
+          role2: formData.role2 || null,
+        };
+      }
+
       if (editingUser) {
         // Update existing user
         const { error } = await supabase
           .from(userType)
-          .update(formData)
+          .update(dataToSave)
           .eq("id", editingUser.id);
 
         if (error) throw error;
-        Alert.alert("Success", "User updated successfully");
+        Alert.alert(
+          "Success",
+          `${
+            userType === "students" ? "Student" : "Instructor"
+          } updated successfully`
+        );
       } else {
         // Create new user
-        const { error } = await supabase.from(userType).insert([formData]);
+        const { error } = await supabase.from(userType).insert([dataToSave]);
 
         if (error) throw error;
-        Alert.alert("Success", "User created successfully");
+        Alert.alert(
+          "Success",
+          `${
+            userType === "students" ? "Student" : "Instructor"
+          } created successfully`
+        );
       }
 
       onSuccess();
@@ -424,21 +631,29 @@ function CreateUserModal({
 
           {userType === "students" ? (
             <>
-              <TextInput
-                style={styles.input}
-                placeholder="Instrument"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                value={formData.instrument || ""}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, instrument: text })
-                }
-              />
+              {/* Instrument Selection */}
+              <Text style={styles.fieldLabel}>Instrument</Text>
+              <View style={styles.pickerContainer}>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowInstrumentModal(true)}
+                >
+                  <Text style={styles.pickerText}>
+                    {formData.instrument || "Select Instrument"}
+                  </Text>
+                  <Ionicons
+                    name="chevron-down"
+                    size={20}
+                    color="rgba(255,255,255,0.6)"
+                  />
+                </TouchableOpacity>
+              </View>
 
               <Text style={styles.sectionTitle}>Parent Information</Text>
 
               <TextInput
                 style={styles.input}
-                placeholder="Father's Email"
+                placeholder="Father's Name"
                 placeholderTextColor="rgba(255,255,255,0.6)"
                 value={formData.father_email || ""}
                 onChangeText={(text) =>
@@ -450,7 +665,7 @@ function CreateUserModal({
 
               <TextInput
                 style={styles.input}
-                placeholder="Mother's Email"
+                placeholder="Mother's Name"
                 placeholderTextColor="rgba(255,255,255,0.6)"
                 value={formData.mother_email || ""}
                 onChangeText={(text) =>
@@ -481,18 +696,114 @@ function CreateUserModal({
                 }
                 keyboardType="phone-pad"
               />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Student Phone Number"
+                placeholderTextColor="rgba(255,255,255,0.6)"
+                value={formData.student_phone_number || ""}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, student_phone_number: text })
+                }
+                keyboardType="phone-pad"
+              />
+
+              <Text style={styles.sectionTitle}>Instructor Assignment</Text>
+
+              {/* Online Instructor Selection */}
+              <Text style={styles.fieldLabel}>Online Instructor</Text>
+              <View style={styles.pickerContainer}>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => showInstructorPicker("online")}
+                >
+                  <Text style={styles.pickerText}>
+                    {formData.online_instructor_name ||
+                      "Select Online Instructor"}
+                  </Text>
+                  <Ionicons
+                    name="chevron-down"
+                    size={20}
+                    color="rgba(255,255,255,0.6)"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Theory Instructor Selection */}
+              <Text style={styles.fieldLabel}>Theory Instructor</Text>
+              <View style={styles.pickerContainer}>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => showInstructorPicker("theory")}
+                >
+                  <Text style={styles.pickerText}>
+                    {formData.theory_instructor_name ||
+                      "Select Theory Instructor"}
+                  </Text>
+                  <Ionicons
+                    name="chevron-down"
+                    size={20}
+                    color="rgba(255,255,255,0.6)"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* In-Person Instructor Selection */}
+              <Text style={styles.fieldLabel}>In-Person Instructor</Text>
+              <View style={styles.pickerContainer}>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => showInstructorPicker("in_person")}
+                >
+                  <Text style={styles.pickerText}>
+                    {formData.in_person_name || "Select In-Person Instructor"}
+                  </Text>
+                  <Ionicons
+                    name="chevron-down"
+                    size={20}
+                    color="rgba(255,255,255,0.6)"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Second In-Person Instructor Selection */}
+              <Text style={styles.fieldLabel}>Second In-Person Instructor</Text>
+              <View style={styles.pickerContainer}>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => showInstructorPicker("second_inperson")}
+                >
+                  <Text style={styles.pickerText}>
+                    {formData.second_inperson_name ||
+                      "Select Second In-Person Instructor"}
+                  </Text>
+                  <Ionicons
+                    name="chevron-down"
+                    size={20}
+                    color="rgba(255,255,255,0.6)"
+                  />
+                </TouchableOpacity>
+              </View>
             </>
           ) : (
             <>
-              <TextInput
-                style={styles.input}
-                placeholder="Role"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                value={formData.role || ""}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, role: text })
-                }
-              />
+              {/* Instructor Role Selection */}
+              <Text style={styles.fieldLabel}>Instructor Role</Text>
+              <View style={styles.pickerContainer}>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowInstructorRoleModal(true)}
+                >
+                  <Text style={styles.pickerText}>
+                    {formData.role || "Select Instructor Role"}
+                  </Text>
+                  <Ionicons
+                    name="chevron-down"
+                    size={20}
+                    color="rgba(255,255,255,0.6)"
+                  />
+                </TouchableOpacity>
+              </View>
 
               <TextInput
                 style={styles.input}
@@ -505,15 +816,23 @@ function CreateUserModal({
                 keyboardType="phone-pad"
               />
 
-              <TextInput
-                style={styles.input}
-                placeholder="Type"
-                placeholderTextColor="rgba(255,255,255,0.6)"
-                value={formData.type || ""}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, type: text })
-                }
-              />
+              {/* Instructor Type Selection */}
+              <Text style={styles.fieldLabel}>Instructor Type</Text>
+              <View style={styles.pickerContainer}>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowInstructorTypeModal(true)}
+                >
+                  <Text style={styles.pickerText}>
+                    {formData.type || "Select Instructor Type"}
+                  </Text>
+                  <Ionicons
+                    name="chevron-down"
+                    size={20}
+                    color="rgba(255,255,255,0.6)"
+                  />
+                </TouchableOpacity>
+              </View>
             </>
           )}
         </ScrollView>
@@ -534,6 +853,231 @@ function CreateUserModal({
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Instructor Selection Modal */}
+      <Modal
+        visible={showInstructorModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>
+              Select{" "}
+              {instructorType === "online"
+                ? "Online"
+                : instructorType === "theory"
+                ? "Theory"
+                : instructorType === "second_inperson"
+                ? "Second In-Person"
+                : "In-Person"}{" "}
+              Instructor
+            </Text>
+            <TouchableOpacity onPress={() => setShowInstructorModal(false)}>
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            {getFilteredInstructors().length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons
+                  name="school-outline"
+                  size={64}
+                  color="rgba(255,255,255,0.3)"
+                />
+                <Text style={styles.emptyText}>
+                  No{" "}
+                  {instructorType === "online"
+                    ? "online"
+                    : instructorType === "theory"
+                    ? "theory"
+                    : "in-person"}{" "}
+                  instructors available
+                </Text>
+              </View>
+            ) : (
+              getFilteredInstructors().map((instructor: Instructor) => (
+                <TouchableOpacity
+                  key={instructor.id}
+                  style={styles.instructorCard}
+                  onPress={() => selectInstructor(instructor)}
+                >
+                  <View style={styles.instructorAvatar}>
+                    <Text style={styles.instructorInitial}>
+                      {instructor.name.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.instructorInfo}>
+                    <Text style={styles.instructorName}>{instructor.name}</Text>
+                    <Text style={styles.instructorRole}>{instructor.role}</Text>
+                    {instructor.type && (
+                      <Text style={styles.instructorType}>
+                        Type: {instructor.type}
+                      </Text>
+                    )}
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color="rgba(255,255,255,0.6)"
+                  />
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Instrument Selection Modal */}
+      <Modal
+        visible={showInstrumentModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Instrument</Text>
+            <TouchableOpacity onPress={() => setShowInstrumentModal(false)}>
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            {instruments.map((instrument) => (
+              <TouchableOpacity
+                key={instrument}
+                style={styles.instrumentCard}
+                onPress={() => selectInstrument(instrument)}
+              >
+                <View style={styles.instrumentIcon}>
+                  <Ionicons
+                    name={
+                      instrument === "Piano"
+                        ? "musical-notes"
+                        : instrument === "Guitar"
+                        ? "musical-note"
+                        : "musical-notes"
+                    }
+                    size={24}
+                    color="#1c463a"
+                  />
+                </View>
+                <View style={styles.instrumentInfo}>
+                  <Text style={styles.instrumentName}>{instrument}</Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color="rgba(255,255,255,0.6)"
+                />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Instructor Role Selection Modal */}
+      <Modal
+        visible={showInstructorRoleModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Instructor Role</Text>
+            <TouchableOpacity onPress={() => setShowInstructorRoleModal(false)}>
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            {instructorRoles.map((role) => (
+              <TouchableOpacity
+                key={role}
+                style={styles.instructorCard}
+                onPress={() => selectInstructorRole(role)}
+              >
+                <View style={styles.instructorAvatar}>
+                  <Ionicons
+                    name={
+                      role === "Online_Instructor"
+                        ? "videocam"
+                        : role === "Theory_Instructor"
+                        ? "book"
+                        : "person"
+                    }
+                    size={24}
+                    color="#FFFFFF"
+                  />
+                </View>
+                <View style={styles.instructorInfo}>
+                  <Text style={styles.instructorName}>
+                    {role.replace("_", " ")}
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color="rgba(255,255,255,0.6)"
+                />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Instructor Type Selection Modal */}
+      <Modal
+        visible={showInstructorTypeModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Instructor Type</Text>
+            <TouchableOpacity onPress={() => setShowInstructorTypeModal(false)}>
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            {instructorTypes.map((type) => (
+              <TouchableOpacity
+                key={type}
+                style={styles.instrumentCard}
+                onPress={() => selectInstructorType(type)}
+              >
+                <View style={styles.instrumentIcon}>
+                  <Ionicons
+                    name={
+                      type === "Piano"
+                        ? "musical-notes"
+                        : type === "Guitar"
+                        ? "musical-note"
+                        : type === "Violin"
+                        ? "musical-notes"
+                        : type === "Vocal"
+                        ? "mic"
+                        : "book"
+                    }
+                    size={24}
+                    color="#1c463a"
+                  />
+                </View>
+                <View style={styles.instrumentInfo}>
+                  <Text style={styles.instrumentName}>{type}</Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color="rgba(255,255,255,0.6)"
+                />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
     </Modal>
   );
 }
@@ -751,6 +1295,8 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
     padding: 20,
+    paddingBottom: 40,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 18,
@@ -803,5 +1349,100 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.8)",
+    marginBottom: 8,
+    marginTop: 8,
+  },
+  pickerContainer: {
+    marginBottom: 12,
+  },
+  pickerButton: {
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  pickerText: {
+    fontSize: 16,
+    color: "#FFFFFF",
+    flex: 1,
+  },
+  instructorCard: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  instructorAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#1c463a",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  instructorInitial: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  instructorInfo: {
+    flex: 1,
+  },
+  instructorName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    marginBottom: 2,
+  },
+  instructorRole: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.7)",
+    marginBottom: 2,
+  },
+  instructorType: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.6)",
+  },
+  instrumentCard: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  instrumentIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(28,70,58,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  instrumentInfo: {
+    flex: 1,
+  },
+  instrumentName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#FFFFFF",
   },
 });
