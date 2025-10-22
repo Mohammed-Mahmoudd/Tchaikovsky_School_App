@@ -7,9 +7,9 @@ A mobile application for music instructors to manage students, provide feedback,
 <div align="center">
   <img src="screenshots/Login.jpg" width="200" alt="Login"/>
   <img src="screenshots/dashboard.jpg" width="200" alt="Dashboard"/>
-  <img src="screenshots/feedback.png" width="200" alt="Feedback"/>
-  <img src="screenshots/students.png" width="200" alt="Students"/>
-  <img src="screenshots/history.png" width="200" alt="History"/>
+  <img src="screenshots/feedback.jpg" width="200" alt="Feedback"/>
+  <img src="screenshots/students.jpg" width="200" alt="Students"/>
+  
 </div>
 
 ## Tech Stack
