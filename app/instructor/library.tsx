@@ -44,16 +44,6 @@ interface FileItem {
   uploadedBy: string;
 }
 
-interface Statistics {
-  totalFiles: number;
-  totalFolders: number;
-  totalSize: number;
-  pdfFiles: number;
-  audioFiles: number;
-  videoFiles: number;
-  otherFiles: number;
-}
-
 type ViewType = "folders" | "subfolders" | "files";
 
 export default function InstructorLibrary() {
@@ -61,22 +51,12 @@ export default function InstructorLibrary() {
   const [subfolders, setSubfolders] = useState<Subfolder[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
   const [currentView, setCurrentView] = useState<ViewType>("folders");
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const [selectedSubfolder, setSelectedSubfolder] = useState<Subfolder | null>(
     null
   );
   const [breadcrumb, setBreadcrumb] = useState<string[]>(["Music Library"]);
-  const [statistics, setStatistics] = useState<Statistics>({
-    totalFiles: 0,
-    totalFolders: 0,
-    totalSize: 0,
-    pdfFiles: 0,
-    audioFiles: 0,
-    videoFiles: 0,
-    otherFiles: 0,
-  });
   const [fullScreenPdf, setFullScreenPdf] = useState<{
     url: string;
     name: string;
@@ -84,6 +64,7 @@ export default function InstructorLibrary() {
   const [expandedPreviews, setExpandedPreviews] = useState<Set<string>>(
     new Set()
   );
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     loadFileData();
@@ -108,7 +89,6 @@ export default function InstructorLibrary() {
 
       setFolders(foldersData);
       setSubfolders(subfoldersData);
-
       // Extract all files from subfolders
       let extractedFiles: FileItem[] = [];
       subfoldersData.forEach((subfolder) => {
@@ -118,13 +98,12 @@ export default function InstructorLibrary() {
               ...file,
               folderName: subfolder.name,
               source: "subfolder",
-            } as FileItem);
+            });
           });
         }
       });
 
       setFiles(extractedFiles);
-      calculateStatistics(extractedFiles, foldersData, subfoldersData);
     } catch (error) {
       console.error("Error loading file data:", error);
     } finally {
@@ -132,43 +111,12 @@ export default function InstructorLibrary() {
     }
   };
 
-  const calculateStatistics = (
-    files: FileItem[],
-    folders: Folder[],
-    subfolders: Subfolder[]
-  ) => {
-    const totalSize = files.reduce((sum, file) => sum + (file.size || 0), 0);
-    const pdfFiles = files.filter(
-      (file) =>
-        file.type?.includes("pdf") || file.name.toLowerCase().endsWith(".pdf")
-    ).length;
-    const audioFiles = files.filter(
-      (file) =>
-        file.type?.includes("audio") ||
-        file.name.toLowerCase().match(/\.(mp3|wav|flac|aac|ogg)$/i)
-    ).length;
-    const videoFiles = files.filter(
-      (file) =>
-        file.type?.includes("video") ||
-        file.name.toLowerCase().match(/\.(mp4|avi|mov|wmv|flv)$/i)
-    ).length;
-    const otherFiles = files.length - pdfFiles - audioFiles - videoFiles;
-
-    setStatistics({
-      totalFiles: files.length,
-      totalFolders: folders.length + subfolders.length,
-      totalSize,
-      pdfFiles,
-      audioFiles,
-      videoFiles,
-      otherFiles,
-    });
-  };
-
   const navigateToFolder = (folder: Folder) => {
     setSelectedFolder(folder);
     setCurrentView("subfolders");
     setBreadcrumb(["Music Library", folder.name]);
+    setExpandedPreviews(new Set()); // Clear expanded previews
+    setSearchQuery(""); // Clear search when navigating away from files
   };
 
   const navigateToSubfolder = (subfolder: Subfolder) => {
@@ -218,25 +166,23 @@ export default function InstructorLibrary() {
       setSelectedSubfolder(null);
       setBreadcrumb(["Music Library"]);
       setExpandedPreviews(new Set()); // Clear expanded previews
+      setSearchQuery(""); // Clear search when navigating away from files
     } else if (index === 1 && selectedFolder) {
       setCurrentView("subfolders");
       setSelectedSubfolder(null);
       setBreadcrumb(["Music Library", selectedFolder.name]);
       setExpandedPreviews(new Set()); // Clear expanded previews
+      setSearchQuery(""); // Clear search when navigating away from files
     }
   };
 
   const getFilteredData = () => {
     switch (currentView) {
       case "folders":
-        return folders.filter((folder) =>
-          folder.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+        return folders;
       case "subfolders":
         return subfolders.filter(
-          (subfolder) =>
-            subfolder.parent_folder_id === selectedFolder?.id &&
-            subfolder.name.toLowerCase().includes(searchQuery.toLowerCase())
+          (subfolder) => subfolder.parent_folder_id === selectedFolder?.id
         );
       case "files":
         return files.filter((file) =>
@@ -301,14 +247,15 @@ export default function InstructorLibrary() {
   };
 
   const handleViewFile = (file: FileItem) => {
-    if (
-      file.type?.includes("pdf") ||
-      file.name.toLowerCase().endsWith(".pdf")
-    ) {
-      // Open PDF in full screen within app
-      if (file.url) {
-        setFullScreenPdf({ url: file.url, name: file.name });
-      }
+    if (file.url) {
+      // For better file handling, open in system default app
+      Linking.openURL(file.url).catch((err) => {
+        console.error("Failed to open file:", err);
+        // Fallback to fullscreen preview
+        if (file.type === "pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+          setFullScreenPdf({ url: file.url!, name: file.name });
+        }
+      });
     } else {
       // For non-PDF files, open externally
       if (file.url) {
@@ -444,6 +391,7 @@ export default function InstructorLibrary() {
           </View>
 
           <View style={styles.fileActions}>
+            {/* Preview/View Button */}
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => {
@@ -462,6 +410,20 @@ export default function InstructorLibrary() {
                 color="#2196F3"
               />
             </TouchableOpacity>
+            
+            {/* Fullscreen Button for PDFs */}
+            {isPdf && (
+              <TouchableOpacity
+                style={[styles.actionButton, { marginLeft: 8 }]}
+                onPress={() => setFullScreenPdf({ url: file.url!, name: file.name })}
+              >
+                <Ionicons
+                  name="expand"
+                  size={18}
+                  color="#4CAF50"
+                />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -483,9 +445,7 @@ export default function InstructorLibrary() {
             <View style={styles.pdfPreviewWrapper}>
               <WebView
                 source={{
-                  uri: `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(
-                    file.url
-                  )}`,
+                  uri: `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(file.url)}`,
                 }}
                 style={styles.pdfPreview}
                 startInLoadingState={true}
@@ -499,12 +459,19 @@ export default function InstructorLibrary() {
                 )}
                 onError={(error) => {
                   console.error("PDF preview error:", error);
+                  // Fallback to direct URL if PDF.js fails
+                }}
+                onLoadEnd={() => {
+                  console.log("PDF loaded successfully with PDF.js");
                 }}
                 scrollEnabled={true}
                 scalesPageToFit={true}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
                 allowsInlineMediaPlayback={true}
+                mixedContentMode="compatibility"
+                originWhitelist={['*']}
+                userAgent="Mozilla/5.0 (compatible; PDF Viewer)"
               />
             </View>
           </View>
@@ -544,68 +511,33 @@ export default function InstructorLibrary() {
       {/* Breadcrumb */}
       {renderBreadcrumb()}
 
-      {/* Search */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="rgba(255,255,255,0.6)" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={`Search ${currentView}...`}
-            placeholderTextColor="rgba(255,255,255,0.5)"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons name="close" size={20} color="rgba(255,255,255,0.6)" />
-            </TouchableOpacity>
-          )}
+      {/* Search Bar - Only show for files */}
+      {currentView === "files" && (
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={20} color="rgba(255,255,255,0.6)" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search files..."
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery("")}>
+                <Ionicons name="close" size={20} color="rgba(255,255,255,0.6)" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
+      )}
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {currentView === "folders" && (
-          <>
-            {/* Statistics - Only show on main folders view */}
-            <View style={styles.statisticsContainer}>
-              <Text style={styles.sectionTitle}>File Statistics</Text>
-              <View style={styles.statisticsGrid}>
-                <View style={styles.statCard}>
-                  <Ionicons name="document-text" size={24} color="#F44336" />
-                  <Text style={styles.statNumber}>{statistics.pdfFiles}</Text>
-                  <Text style={styles.statLabel}>PDF Files</Text>
-                </View>
-
-                <View style={styles.statCard}>
-                  <Ionicons name="musical-notes" size={24} color="#4CAF50" />
-                  <Text style={styles.statNumber}>{statistics.audioFiles}</Text>
-                  <Text style={styles.statLabel}>Audio Files</Text>
-                </View>
-
-                <View style={styles.statCard}>
-                  <Ionicons name="folder" size={24} color="#FF9800" />
-                  <Text style={styles.statNumber}>
-                    {statistics.totalFolders}
-                  </Text>
-                  <Text style={styles.statLabel}>Folders</Text>
-                </View>
-
-                <View style={styles.statCard}>
-                  <Ionicons name="cloud" size={24} color="#2196F3" />
-                  <Text style={styles.statNumber}>
-                    {formatFileSize(statistics.totalSize)}
-                  </Text>
-                  <Text style={styles.statLabel}>Total Size</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Folders List */}
-            <Text style={styles.sectionTitle}>
-              Folders ({filteredData.length})
-            </Text>
-          </>
+          <Text style={styles.sectionTitle}>
+            Folders ({filteredData.length})
+          </Text>
         )}
 
         {filteredData.length > 0 ? (
@@ -632,9 +564,7 @@ export default function InstructorLibrary() {
             />
             <Text style={styles.emptyStateTitle}>No {currentView} found</Text>
             <Text style={styles.emptyStateText}>
-              {searchQuery
-                ? "Try adjusting your search terms"
-                : `No ${currentView} available`}
+              No {currentView} available
             </Text>
           </View>
         )}
@@ -651,7 +581,7 @@ export default function InstructorLibrary() {
             <View style={styles.fullScreenHeader}>
               <Text style={styles.fullScreenTitle}>{fullScreenPdf.name}</Text>
               <TouchableOpacity
-                style={styles.fullScreenCloseButton}
+                style={styles.pdfFullscreenButton}
                 onPress={() => setFullScreenPdf(null)}
               >
                 <Ionicons name="close" size={24} color="#FFFFFF" />
@@ -659,9 +589,7 @@ export default function InstructorLibrary() {
             </View>
             <WebView
               source={{
-                uri: `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(
-                  fullScreenPdf.url
-                )}`,
+                uri: `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fullScreenPdf.url)}`,
               }}
               style={styles.fullScreenWebView}
               startInLoadingState={true}
@@ -675,12 +603,19 @@ export default function InstructorLibrary() {
               )}
               onError={(error) => {
                 console.error("PDF fullscreen error:", error);
+                // Could fallback to direct URL or Google Docs viewer
+              }}
+              onLoadEnd={() => {
+                console.log("Fullscreen PDF loaded successfully with PDF.js");
               }}
               scrollEnabled={true}
               scalesPageToFit={true}
               javaScriptEnabled={true}
               domStorageEnabled={true}
               allowsInlineMediaPlayback={true}
+              mixedContentMode="compatibility"
+              originWhitelist={['*']}
+              userAgent="Mozilla/5.0 (compatible; PDF Viewer)"
             />
           </View>
         )}
@@ -738,7 +673,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#FFFFFF",
     marginTop: 8,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   statLabel: {
     fontSize: 12,
@@ -755,9 +690,10 @@ const styles = StyleSheet.create({
   // Folder Card Styles
   folderCard: {
     backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    marginHorizontal: 4,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.15)",
     shadowColor: "#000000",
@@ -777,7 +713,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,152,0,0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 8,
   },
   folderInfo: {
     flex: 1,
@@ -786,12 +722,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#FFFFFF",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   folderDescription: {
     fontSize: 14,
     color: "rgba(255,255,255,0.7)",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   folderDetails: {
     fontSize: 12,
@@ -813,9 +749,10 @@ const styles = StyleSheet.create({
   // File Card Styles
   fileCard: {
     backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    marginHorizontal: 4,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.15)",
     shadowColor: "#000000",
@@ -834,7 +771,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 8,
   },
   fileInfo: {
     flex: 1,
@@ -843,12 +780,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   fileDetails: {
     fontSize: 13,
     color: "rgba(255,255,255,0.6)",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   uploadedBy: {
     fontSize: 12,
@@ -939,16 +876,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFFFFF",
     flex: 1,
-    marginRight: 16,
-  },
-  fullScreenCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    marginTop: 8,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 8,
   },
   fullScreenWebView: {
     flex: 1,
@@ -979,7 +910,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 8,
   },
   headerContent: {
     flex: 1,
@@ -989,6 +920,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#FFFFFF",
     marginBottom: 2,
+    marginTop: -8,
     letterSpacing: 0.3,
     textShadowColor: "rgba(0, 0, 0, 0.3)",
     textShadowOffset: { width: 0, height: 1 },
@@ -1003,11 +935,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
     backgroundColor: "rgba(255,255,255,0.05)",
-    marginHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 12,
+    marginHorizontal: 8,
+    borderRadius: 6,
+    marginBottom: 4,
   },
   breadcrumbItem: {
     flexDirection: "row",
@@ -1017,15 +949,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255,255,255,0.6)",
     fontWeight: "500",
-    marginRight: 8,
+    marginRight: 6,
   },
   breadcrumbTextActive: {
     color: "#FFFFFF",
     fontWeight: "700",
   },
+  // Search Styles
   searchContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    paddingHorizontal: 8,
+    marginBottom: 8,
   },
   searchBar: {
     flexDirection: "row",
@@ -1034,28 +967,34 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: "#FFFFFF",
     fontWeight: "500",
-    marginLeft: 12,
+    marginLeft: 8,
   },
   content: {
     flex: 1,
+    marginTop: 8,
+    paddingTop: 16,
   },
   itemsList: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 4,
+    paddingBottom: 8,
+    marginTop: 12,
   },
   itemCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.12)",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 12,
+    padding: 8,
+    marginBottom: 4,
+    marginHorizontal: 4,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -1068,7 +1007,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.15)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 8,
   },
   itemContent: {
     flex: 1,
@@ -1077,19 +1016,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#FFFFFF",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   itemSubtitle: {
     fontSize: 14,
     color: "rgba(255,255,255,0.7)",
     fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   itemDescription: {
     fontSize: 13,
     color: "rgba(255,255,255,0.6)",
     fontWeight: "500",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   itemDate: {
     fontSize: 12,

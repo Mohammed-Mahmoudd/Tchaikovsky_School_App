@@ -43,6 +43,7 @@ export default function SendFeedbackScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showStudentModal, setShowStudentModal] = useState(false);
+  const [studentSearchQuery, setStudentSearchQuery] = useState("");
   const [showFileModal, setShowFileModal] = useState(false);
   const [showSessionNumberModal, setShowSessionNumberModal] = useState(false);
   const [showTotalSessionsModal, setShowTotalSessionsModal] = useState(false);
@@ -275,6 +276,18 @@ export default function SendFeedbackScreen() {
       newExpanded.add(fileId);
     }
     setExpandedFiles(newExpanded);
+  };
+
+  // Filter students based on search query
+  const getFilteredStudents = () => {
+    if (!studentSearchQuery.trim()) {
+      return students;
+    }
+    
+    return students.filter(student => 
+      student.name.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
+      student.instrument.toLowerCase().includes(studentSearchQuery.toLowerCase())
+    );
   };
 
   if (loading) {
@@ -657,21 +670,63 @@ export default function SendFeedbackScreen() {
             <Text style={styles.modalTitle}>Select Student</Text>
             <TouchableOpacity
               style={styles.modalCloseButton}
-              onPress={() => setShowStudentModal(false)}
+              onPress={() => {
+                setShowStudentModal(false);
+                setStudentSearchQuery(""); // Clear search when closing
+              }}
             >
               <Ionicons name="close" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
+          
+          {/* Search Input */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search" size={20} color="rgba(255,255,255,0.6)" />
+              <TextInput
+                style={styles.searchInput}
+                value={studentSearchQuery}
+                onChangeText={setStudentSearchQuery}
+                placeholder="Search students by name or instrument..."
+                placeholderTextColor="rgba(255,255,255,0.5)"
+              />
+              {studentSearchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setStudentSearchQuery("")}
+                  style={styles.clearSearchButton}
+                >
+                  <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.6)" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+          
           <ScrollView style={styles.modalContent}>
-            {students.map((student) => (
-              <TouchableOpacity
-                key={student.id}
-                style={styles.studentOption}
-                onPress={() => {
-                  setSelectedStudent(student);
-                  setShowStudentModal(false);
-                }}
-              >
+            {getFilteredStudents().length === 0 ? (
+              <View style={styles.noResultsContainer}>
+                <Ionicons name="search" size={48} color="rgba(255,255,255,0.3)" />
+                <Text style={styles.noResultsText}>
+                  {studentSearchQuery.trim() 
+                    ? "No students found matching your search" 
+                    : "No students assigned to you"}
+                </Text>
+                {studentSearchQuery.trim() && (
+                  <Text style={styles.noResultsSubtext}>
+                    Try searching by name or instrument
+                  </Text>
+                )}
+              </View>
+            ) : (
+              getFilteredStudents().map((student) => (
+                <TouchableOpacity
+                  key={student.id}
+                  style={styles.studentOption}
+                  onPress={() => {
+                    setSelectedStudent(student);
+                    setShowStudentModal(false);
+                    setStudentSearchQuery(""); // Clear search when selecting
+                  }}
+                >
                 <View
                   style={[
                     styles.studentAvatar,
@@ -692,7 +747,8 @@ export default function SendFeedbackScreen() {
                   <Ionicons name="checkmark" size={24} color="#4CAF50" />
                 )}
               </TouchableOpacity>
-            ))}
+              ))
+            )}
           </ScrollView>
         </View>
       </Modal>
@@ -812,7 +868,7 @@ export default function SendFeedbackScreen() {
                         <View style={styles.smallPdfPreviewWrapper}>
                           <WebView
                             source={{
-                              uri: `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(
+                              uri: `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(
                                 file.url
                               )}`,
                             }}
@@ -878,7 +934,7 @@ export default function SendFeedbackScreen() {
             </View>
             <WebView
               source={{
-                uri: `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(
+                uri: `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(
                   fullScreenPdf.url
                 )}`,
               }}
@@ -1970,5 +2026,54 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#FFFFFF",
     marginLeft: 8,
+  },
+
+  // Search Styles
+  searchContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  searchInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#FFFFFF",
+    marginLeft: 12,
+  },
+  clearSearchButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  noResultsText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.8)",
+    textAlign: "center",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noResultsSubtext: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

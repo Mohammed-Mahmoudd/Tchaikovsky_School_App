@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { useAuth } from "../components/login/AuthContext";
 import { supabase } from "../../supabase.js";
 
@@ -16,18 +18,9 @@ import StudentFeedbackScreen from "./feedback";
 import StudentMaterialsScreen from "./materials";
 import StudentBackground from "../components/student/StudentBackground";
 
-interface StudentDashboardProps {
-  activeTab?: string;
-  selectedFileId?: string;
-  onTabChange?: (tab: string, fileId?: string) => void;
-}
-
-export default function StudentDashboard({
-  activeTab = "dashboard",
-  selectedFileId,
-  onTabChange,
-}: StudentDashboardProps) {
-  const { user } = useAuth();
+export default function StudentDashboard() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalFeedback: 0,
@@ -44,6 +37,22 @@ export default function StudentDashboard({
   useEffect(() => {
     loadStudentData();
   }, [user]);
+
+  const handleFeedbackCardClick = (feedbackId: number) => {
+    router.push({
+      pathname: "/student/feedback-details",
+      params: { id: feedbackId.toString() }
+    });
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.replace("/");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
 
   const loadStudentData = async () => {
     try {
@@ -104,7 +113,8 @@ export default function StudentDashboard({
       // Sort by feedback date and get the latest 6 files
       const sortedFeedbackFiles = recentFeedbackFiles.sort(
         (a, b) =>
-          new Date(b.feedbackDate).getTime() - new Date(a.feedbackDate).getTime()
+          new Date(b.feedbackDate).getTime() -
+          new Date(a.feedbackDate).getTime()
       );
       setRecentFiles(sortedFeedbackFiles.slice(0, 6));
 
@@ -112,12 +122,17 @@ export default function StudentDashboard({
       if (feedbackResult.data) {
         const totalFeedback = feedbackResult.data.length;
         const validRatings = feedbackResult.data.filter(
-          (f) => f.homework_rating && typeof f.homework_rating === "number" && f.homework_rating > 0
+          (f) =>
+            f.homework_rating &&
+            typeof f.homework_rating === "number" &&
+            f.homework_rating > 0
         );
         const averageRating =
           validRatings.length > 0
-            ? validRatings.reduce((sum, f) => sum + Number(f.homework_rating), 0) /
-              validRatings.length
+            ? validRatings.reduce(
+                (sum, f) => sum + Number(f.homework_rating),
+                0
+              ) / validRatings.length
             : 0;
 
         // Calculate recent sessions (last 30 days)
@@ -160,25 +175,7 @@ export default function StudentDashboard({
     }
   };
 
-  const handleFileClick = (file: any) => {
-    // Navigate to materials screen and pass the selected file name
-    if (onTabChange) {
-      onTabChange("materials", file.name);
-    }
-  };
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case "feedback":
-        return <StudentFeedbackScreen />;
-      case "materials":
-        return <StudentMaterialsScreen selectedFileId={selectedFileId} />;
-      default:
-        return renderOriginalDashboard();
-    }
-  };
-
-  const renderOriginalDashboard = () => {
+  const renderDashboard = () => {
     if (loading) {
       return (
         <View style={styles.loadingContainer}>
@@ -191,18 +188,30 @@ export default function StudentDashboard({
     const progressPercentage = stats.progressPercentage;
 
     return (
-      <ScrollView
-        style={styles.dashboardContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <ScrollView
+          style={styles.dashboardContent}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeTitle}>
-            Welcome back, {studentData?.name || user?.name}!
-          </Text>
-          <Text style={styles.welcomeSubtitle}>
-            Ready for your next music lesson?
-          </Text>
+          <View style={styles.welcomeHeader}>
+            <View style={styles.welcomeInfo}>
+              <Text style={styles.welcomeTitle}>
+                Welcome back, {studentData?.name || user?.name}!
+              </Text>
+              <Text style={styles.welcomeSubtitle}>
+                Ready for your next music lesson?
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Statistics Cards */}
@@ -260,9 +269,9 @@ export default function StudentDashboard({
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionsGrid}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionCard}
-              onPress={() => onTabChange && onTabChange("feedback")}
+              onPress={() => router.push("/student/feedback")}
               activeOpacity={0.7}
             >
               <View style={[styles.actionIcon, { backgroundColor: "#1c463a" }]}>
@@ -274,9 +283,9 @@ export default function StudentDashboard({
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionCard}
-              onPress={() => onTabChange && onTabChange("materials")}
+              onPress={() => router.push("/student/materials")}
               activeOpacity={0.7}
             >
               <View style={[styles.actionIcon, { backgroundColor: "#2196F3" }]}>
@@ -296,10 +305,16 @@ export default function StudentDashboard({
           <View style={styles.filesGrid}>
             {recentFiles.length > 0 ? (
               recentFiles.map((file, index) => (
-                <TouchableOpacity 
-                  key={index} 
+                <TouchableOpacity
+                  key={index}
                   style={styles.fileCard}
-                  onPress={() => handleFileClick(file)}
+                  onPress={() => router.push({
+                    pathname: "/student/materials",
+                    params: { 
+                      selectedFileId: file.id || file.name,
+                      selectedFileName: file.name 
+                    }
+                  })}
                   activeOpacity={0.7}
                 >
                   <View
@@ -318,10 +333,9 @@ export default function StudentDashboard({
                     {file.name}
                   </Text>
                   <Text style={styles.fileSubtitle}>
-                    {file.source === "feedback" 
+                    {file.source === "feedback"
                       ? `${file.sessionType} - Session ${file.sessionNumber}`
-                      : file.folderName || "General Library"
-                    }
+                      : file.folderName || "General Library"}
                   </Text>
                 </TouchableOpacity>
               ))
@@ -343,9 +357,9 @@ export default function StudentDashboard({
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Feedback</Text>
             {recentFeedback.length > 0 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.showMoreButton}
-                onPress={() => onTabChange && onTabChange("feedback")}
+                onPress={() => router.push("/student/feedback")}
                 activeOpacity={0.7}
               >
                 <Text style={styles.showMoreText}>Show More</Text>
@@ -356,7 +370,12 @@ export default function StudentDashboard({
           <View style={styles.feedbackContainer}>
             {recentFeedback.length > 0 ? (
               recentFeedback.map((feedback, index) => (
-                <View key={index} style={styles.feedbackCard}>
+                <TouchableOpacity 
+                  key={index} 
+                  style={styles.feedbackCard}
+                  onPress={() => handleFeedbackCardClick(feedback.id)}
+                  activeOpacity={0.7}
+                >
                   <View style={styles.feedbackHeader}>
                     <View style={styles.feedbackInfo}>
                       <Text style={styles.feedbackInstructor}>
@@ -389,7 +408,7 @@ export default function StudentDashboard({
                       {feedback.feedback}
                     </Text>
                   )}
-                </View>
+                </TouchableOpacity>
               ))
             ) : (
               <View style={styles.emptyState}>
@@ -429,6 +448,7 @@ export default function StudentDashboard({
           </View>
         </View>
       </ScrollView>
+    </SafeAreaView>
     );
   };
 
@@ -489,12 +509,7 @@ export default function StudentDashboard({
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <StudentBackground />
-      {renderContent()}
-    </View>
-  );
+  return renderDashboard();
 }
 
 const styles = StyleSheet.create({
@@ -522,6 +537,15 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 24,
   },
+  welcomeHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  welcomeInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
   welcomeTitle: {
     fontSize: 32,
     fontWeight: "900",
@@ -537,6 +561,21 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.8)",
     fontWeight: "500",
     letterSpacing: 0.3,
+  },
+  logoutButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   statsContainer: {
     flexDirection: "row",

@@ -111,13 +111,14 @@ export default function InstructorDashboard({
           feedback.slice(0, 3).map(async (f) => {
             const { data: student } = await supabase
               .from("students")
-              .select("name")
+              .select("name, instrument")
               .eq("id", f.student_id)
               .single();
 
             return {
               ...f,
               student_name: student?.name || "Unknown Student",
+              student_instrument: student?.instrument || "Unknown Instrument",
             };
           })
         );
@@ -141,6 +142,31 @@ export default function InstructorDashboard({
     if (diffInHours < 24) return `${diffInHours}h ago`;
     const diffInDays = Math.floor(diffInHours / 24);
     return `${diffInDays}d ago`;
+  };
+
+  const handleStudentFeedback = (student: any) => {
+    router.push({
+      pathname: "/instructor/feedback",
+      params: { 
+        selectedStudentId: student.id.toString(),
+        selectedStudentName: student.name,
+        selectedStudentInstrument: student.instrument,
+        selectedStudentColor: student.color || "#4CAF50"
+      }
+    });
+  };
+
+  const handleFeedbackHistory = (feedback: any) => {
+    router.push({
+      pathname: "/instructor/feedback-history",
+      params: { 
+        selectedFeedbackId: feedback.id.toString(),
+        studentId: feedback.student_id.toString(),
+        studentName: feedback.student_name,
+        studentInstrument: feedback.student_instrument,
+        scrollToFeedback: "true"
+      }
+    });
   };
 
   const StatCard = ({ title, value, icon, color }: any) => (
@@ -242,11 +268,24 @@ export default function InstructorDashboard({
 
       {/* Recent Students */}
       <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Recent Students</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Students</Text>
+          <TouchableOpacity 
+            style={styles.viewAllButton}
+            onPress={() => router.push("/instructor/students")}
+          >
+            <Text style={styles.viewAllText}>View All</Text>
+            <Ionicons name="chevron-forward" size={16} color="#4CAF50" />
+          </TouchableOpacity>
+        </View>
         {recentStudents.length > 0 ? (
           <View style={styles.studentsGrid}>
             {recentStudents.map((student) => (
-              <View key={student.id} style={styles.studentCard}>
+              <TouchableOpacity 
+                key={student.id} 
+                style={styles.studentCard}
+                onPress={() => handleStudentFeedback(student)}
+              >
                 <View
                   style={[
                     styles.studentAvatar,
@@ -263,7 +302,7 @@ export default function InstructorDashboard({
                 <Text style={styles.studentInstrument} numberOfLines={1}>
                   {student.instrument}
                 </Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         ) : (
@@ -280,11 +319,24 @@ export default function InstructorDashboard({
 
       {/* Recent Feedback */}
       <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Recent Feedback</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Feedback</Text>
+          <TouchableOpacity 
+            style={styles.viewAllButton}
+            onPress={() => router.push("/instructor/feedback-history")}
+          >
+            <Text style={styles.viewAllText}>View All</Text>
+            <Ionicons name="chevron-forward" size={16} color="#4CAF50" />
+          </TouchableOpacity>
+        </View>
         {recentFeedback.length > 0 ? (
           <View style={styles.feedbackList}>
             {recentFeedback.map((feedback) => (
-              <View key={feedback.id} style={styles.feedbackCard}>
+              <TouchableOpacity 
+                key={feedback.id} 
+                style={styles.feedbackCard}
+                onPress={() => handleFeedbackHistory(feedback)}
+              >
                 <View style={styles.feedbackHeader}>
                   <Text style={styles.feedbackStudent}>
                     {feedback.student_name}
@@ -312,7 +364,7 @@ export default function InstructorDashboard({
                     ))}
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         ) : (
@@ -616,5 +668,29 @@ const styles = StyleSheet.create({
   },
   dashboardContent: {
     flex: 1,
+  },
+  
+  // Section Header Styles
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  viewAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "rgba(76,175,80,0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(76,175,80,0.3)",
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#4CAF50",
+    marginRight: 4,
   },
 });

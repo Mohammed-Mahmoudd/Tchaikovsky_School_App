@@ -28,9 +28,11 @@ export default function InstructorLayout() {
   };
 
   const getActiveTab = () => {
-    if (pathname.includes("/feedback")) return "feedback";
+    if (pathname === "/instructor/feedback") return "feedback";
     if (pathname.includes("/students")) return "students";
     if (pathname.includes("/library")) return "library";
+    // feedback-history should not be part of bottom navigation
+    if (pathname.includes("/feedback-history")) return "none";
     return "dashboard";
   };
 

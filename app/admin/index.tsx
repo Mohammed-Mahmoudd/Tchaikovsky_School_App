@@ -41,7 +41,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadDashboardStats();
-    
+
     // Set up auto-refresh every 30 seconds
     const interval = setInterval(() => {
       loadDashboardStats();
@@ -170,13 +170,19 @@ export default function AdminDashboard() {
           ]);
 
           const sessionType = feedback.session_type || "lesson";
-          const rating = feedback.homework_rating ? ` (${feedback.homework_rating}/5 ⭐)` : "";
-          
+          const rating = feedback.homework_rating
+            ? ` (${feedback.homework_rating}/5 ⭐)`
+            : "";
+
           activities.push({
             id: `feedback_${feedback.id}`,
             type: "feedback_submitted",
             title: "Lesson feedback added",
-            subtitle: `${instructorResult.data?.name || "Instructor"} reviewed ${studentResult.data?.name || "Student"}'s ${sessionType}${rating}`,
+            subtitle: `${
+              instructorResult.data?.name || "Instructor"
+            } reviewed ${
+              studentResult.data?.name || "Student"
+            }'s ${sessionType}${rating}`,
             icon: "chatbubble",
             color: "#FF9800",
             timestamp: new Date(feedback.created_at),
@@ -200,7 +206,9 @@ export default function AdminDashboard() {
             id: `instructor_${instructor.id}`,
             type: "instructor_updated",
             title: "New instructor added",
-            subtitle: `${instructor.name} - ${instructor.role || "Music Instructor"}`,
+            subtitle: `${instructor.name} - ${
+              instructor.role || "Music Instructor"
+            }`,
             icon: "school",
             color: "#2196F3",
             timestamp: new Date(instructor.created_at),
@@ -265,20 +273,6 @@ export default function AdminDashboard() {
           </View>
 
           <View style={styles.statCard}>
-            <Ionicons name="folder" size={32} color="#FF9800" />
-            {loading ? (
-              <ActivityIndicator
-                size="small"
-                color="#FF9800"
-                style={{ marginVertical: 8 }}
-              />
-            ) : (
-              <Text style={styles.statNumber}>{stats.totalFiles}</Text>
-            )}
-            <Text style={styles.statLabel}>Files</Text>
-          </View>
-
-          <View style={styles.statCard}>
             <Ionicons name="chatbubbles" size={32} color="#9C27B0" />
             {loading ? (
               <ActivityIndicator
@@ -306,9 +300,6 @@ export default function AdminDashboard() {
               <Ionicons name="people" size={28} color="#FFFFFF" />
             </View>
             <Text style={styles.actionTitle}>Manage Users</Text>
-            <Text style={styles.actionSubtitle}>
-              Create, edit, and manage student & instructor accounts
-            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -319,9 +310,6 @@ export default function AdminDashboard() {
               <Ionicons name="cloud-upload" size={28} color="#FFFFFF" />
             </View>
             <Text style={styles.actionTitle}>File Management</Text>
-            <Text style={styles.actionSubtitle}>
-              Upload, organize, and manage musical files
-            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -332,9 +320,6 @@ export default function AdminDashboard() {
               <Ionicons name="chatbubbles" size={28} color="#FFFFFF" />
             </View>
             <Text style={styles.actionTitle}>View Feedback</Text>
-            <Text style={styles.actionSubtitle}>
-              Monitor all instructor feedback to students
-            </Text>
           </TouchableOpacity>
         </View>
       </View>

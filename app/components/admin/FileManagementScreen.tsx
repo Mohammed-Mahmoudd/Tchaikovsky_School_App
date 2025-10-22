@@ -92,7 +92,9 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
   const [showCreateSubfolderModal, setShowCreateSubfolderModal] =
     useState(false);
   const [showEditSubfolderModal, setShowEditSubfolderModal] = useState(false);
-  const [editingSubfolder, setEditingSubfolder] = useState<Subfolder | null>(null);
+  const [editingSubfolder, setEditingSubfolder] = useState<Subfolder | null>(
+    null
+  );
   const [newSubfolderName, setNewSubfolderName] = useState("");
   const [newSubfolderDescription, setNewSubfolderDescription] = useState("");
   const [showUploadLocationModal, setShowUploadLocationModal] = useState(false);
@@ -101,6 +103,8 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderDescription, setNewFolderDescription] = useState("");
+  const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
+  const [parentFolderId, setParentFolderId] = useState<number | null>(null);
 
   useEffect(() => {
     loadFileData();
@@ -326,7 +330,9 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
       // Update selected folder if it's the one being edited
       if (selectedFolder?.id === editingFolder.id) {
         setSelectedFolder((prev) =>
-          prev ? { ...prev, name: data.name, description: data.description } : null
+          prev
+            ? { ...prev, name: data.name, description: data.description }
+            : null
         );
       }
 
@@ -336,10 +342,7 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
       setEditingFolder(null);
       setShowEditFolderModal(false);
 
-      Alert.alert(
-        "Success",
-        `Folder "${data.name}" updated successfully.`
-      );
+      Alert.alert("Success", `Folder "${data.name}" updated successfully.`);
     } catch (error) {
       console.error("Error updating folder:", error);
       const errorMessage =
@@ -379,7 +382,10 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
                 setBreadcrumb(["Folders"]);
               }
 
-              Alert.alert("Success", `Folder "${folder.name}" deleted successfully.`);
+              Alert.alert(
+                "Success",
+                `Folder "${folder.name}" deleted successfully.`
+              );
             } catch (error) {
               console.error("Error deleting folder:", error);
               const errorMessage =
@@ -414,25 +420,39 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
               }
 
               // Update local state
-              setSubfolders((prev) => prev.filter((sf) => sf.id !== subfolder.id));
+              setSubfolders((prev) =>
+                prev.filter((sf) => sf.id !== subfolder.id)
+              );
 
               // Update folder's subfolder count
               if (selectedFolder) {
                 setFolders((prev) =>
                   prev.map((f) =>
                     f.id === selectedFolder.id
-                      ? { ...f, subfolder_count: Math.max(0, (f.subfolder_count || 1) - 1) }
+                      ? {
+                          ...f,
+                          subfolder_count: Math.max(
+                            0,
+                            (f.subfolder_count || 1) - 1
+                          ),
+                        }
                       : f
                   )
                 );
               }
 
-              Alert.alert("Success", `Subfolder "${subfolder.name}" deleted successfully.`);
+              Alert.alert(
+                "Success",
+                `Subfolder "${subfolder.name}" deleted successfully.`
+              );
             } catch (error) {
               console.error("Error deleting subfolder:", error);
               const errorMessage =
                 error instanceof Error ? error.message : "Unknown error";
-              Alert.alert("Error", `Failed to delete subfolder: ${errorMessage}`);
+              Alert.alert(
+                "Error",
+                `Failed to delete subfolder: ${errorMessage}`
+              );
             }
           },
         },
@@ -482,7 +502,9 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
       // Update selected subfolder if it's the one being edited
       if (selectedSubfolder?.id === editingSubfolder.id) {
         setSelectedSubfolder((prev) =>
-          prev ? { ...prev, name: data.name, description: data.description } : null
+          prev
+            ? { ...prev, name: data.name, description: data.description }
+            : null
         );
       }
 
@@ -492,10 +514,7 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
       setEditingSubfolder(null);
       setShowEditSubfolderModal(false);
 
-      Alert.alert(
-        "Success",
-        `Subfolder "${data.name}" updated successfully.`
-      );
+      Alert.alert("Success", `Subfolder "${data.name}" updated successfully.`);
     } catch (error) {
       console.error("Error updating subfolder:", error);
       const errorMessage =
@@ -721,7 +740,6 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
 
   const handleUploadFile = async () => {
     try {
-
       const result = await DocumentPicker.getDocumentAsync({
         type: "*/*",
         copyToCacheDirectory: true,
@@ -931,19 +949,15 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
   };
 
   const handleDownloadFile = (file: FileItem) => {
-    Alert.alert(
-      "Download File",
-      `Download ${file.name}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Download",
-          onPress: () => {
-            Linking.openURL(file.url);
-          },
+    Alert.alert("Download File", `Download ${file.name}?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Download",
+        onPress: () => {
+          Linking.openURL(file.url);
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleRenameFile = (file: FileItem) => {
@@ -1001,6 +1015,7 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
           onPress: async () => {
             try {
               if (selectedSubfolder) {
+                // Delete from subfolder
                 const updatedFiles =
                   selectedSubfolder.files?.filter((f) => f.id !== file.id) ||
                   [];
@@ -1019,6 +1034,30 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
 
                 loadFileData();
                 Alert.alert("Success", `${file.name} deleted successfully!`);
+              } else if (selectedFolder && currentView === "folder-files") {
+                // Delete from folder
+                const updatedFiles =
+                  selectedFolder.files?.filter((f) => f.id !== file.id) || [];
+
+                const { error } = await supabase
+                  .from("folders")
+                  .update({ files: updatedFiles })
+                  .eq("id", selectedFolder.id);
+
+                if (error) throw error;
+
+                setSelectedFolder({
+                  ...selectedFolder,
+                  files: updatedFiles,
+                });
+
+                loadFileData();
+                Alert.alert("Success", `${file.name} deleted successfully!`);
+              } else {
+                Alert.alert(
+                  "Error",
+                  "Unable to determine file location for deletion"
+                );
               }
             } catch (error) {
               console.error("Error deleting file:", error);
@@ -1028,6 +1067,45 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
         },
       ]
     );
+  };
+
+  const handleCreateFolderInFolder = (parentFolder: Folder) => {
+    setParentFolderId(parentFolder.id);
+    setNewFolderName("");
+    setNewFolderDescription("");
+    setShowCreateFolderModal(true);
+  };
+
+  const createNestedFolder = async () => {
+    if (!newFolderName.trim()) {
+      Alert.alert("Error", "Please enter a folder name");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("folders")
+        .insert({
+          name: newFolderName.trim(),
+          description: newFolderDescription.trim(),
+          files: [],
+          subfolder_count: 0,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setShowCreateFolderModal(false);
+      setNewFolderName("");
+      setNewFolderDescription("");
+      setParentFolderId(null);
+      loadFileData();
+      Alert.alert("Success", "Folder created successfully!");
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      Alert.alert("Error", "Failed to create folder");
+    }
   };
 
   const handleRenameFolder = (folder: Folder) => {
@@ -1061,7 +1139,6 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
       folder.name
     );
   };
-
 
   // Navigation functions
   const navigateToFolder = (folder: Folder) => {
@@ -1142,14 +1219,14 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
   };
 
   const filteredData = getFilteredData();
-  // Generate PDF viewer URL with fallbacks
+  // Generate PDF viewer URL with fallbacks - prioritize PDF.js like instructor/student screens
   const getPdfViewerUrl = (fileUrl: string, attempt: number = 0): string => {
     const encodedUrl = encodeURIComponent(fileUrl);
 
-    // Multiple fallback strategies - prioritize viewers for inline preview
+    // Multiple fallback strategies - prioritize PDF.js viewer for consistency
     const strategies = [
-      `https://docs.google.com/gview?embedded=true&url=${encodedUrl}`, // Google Docs viewer for inline preview
-      `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodedUrl}`, // PDF.js viewer
+      `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodedUrl}`, // PDF.js viewer (primary)
+      `https://docs.google.com/gview?embedded=true&url=${encodedUrl}`, // Google Docs viewer (fallback)
       `https://docs.google.com/viewer?url=${encodedUrl}&embedded=true`, // Alternative Google viewer
       fileUrl, // Direct URL as last resort
     ];
@@ -1224,22 +1301,29 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
                   {file.name}
                 </Text>
                 <Text style={styles.modernFileDetails}>
-                  {formatFileSize(file.size)} • {(file as any).folderName || "Unknown"}
+                  {formatFileSize(file.size)} •{" "}
+                  {(file as any).folderName || "Unknown"}
                 </Text>
               </View>
             </View>
 
             {/* File Type Badge */}
-            <View style={[
-              styles.fileTypeBadge,
-              { backgroundColor: getFileColor(file.type) + "20" },
-              { borderColor: getFileColor(file.type) + "40" }
-            ]}>
-              <Text style={[
-                styles.fileTypeBadgeText,
-                { color: getFileColor(file.type) }
-              ]}>
-                {file.type?.toUpperCase() || file.name.split('.').pop()?.toUpperCase() || 'FILE'}
+            <View
+              style={[
+                styles.fileTypeBadge,
+                { backgroundColor: getFileColor(file.type) + "20" },
+                { borderColor: getFileColor(file.type) + "40" },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.fileTypeBadgeText,
+                  { color: getFileColor(file.type) },
+                ]}
+              >
+                {file.type?.toUpperCase() ||
+                  file.name.split(".").pop()?.toUpperCase() ||
+                  "FILE"}
               </Text>
             </View>
           </View>
@@ -1272,9 +1356,7 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
 
           <TouchableOpacity
             style={[styles.actionButton, styles.viewActionButton]}
-            onPress={() =>
-              setFullScreenPdf({ url: file.url, name: file.name })
-            }
+            onPress={() => setFullScreenPdf({ url: file.url, name: file.name })}
           >
             <Ionicons name="expand" size={16} color="#4CAF50" />
             <Text style={styles.actionButtonText}>View</Text>
@@ -1353,14 +1435,20 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
                 allowsLinkPreview={false}
                 onShouldStartLoadWithRequest={(request) => {
                   // Prevent downloads by blocking certain URLs
-                  if (request.url.includes('download') || request.url.includes('attachment')) {
+                  if (
+                    request.url.includes("download") ||
+                    request.url.includes("attachment")
+                  ) {
                     return false;
                   }
                   return true;
                 }}
                 onNavigationStateChange={(navState) => {
                   // Prevent navigation away from the PDF viewer
-                  if (navState.url !== getPdfViewerUrl(file.url, retryAttempts.get(file.id) || 0)) {
+                  if (
+                    navState.url !==
+                    getPdfViewerUrl(file.url, retryAttempts.get(file.id) || 0)
+                  ) {
                     return false;
                   }
                 }}
@@ -1452,12 +1540,16 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
           {/* Stats Section */}
           <View style={styles.folderStatsSection}>
             <View style={styles.statItem}>
-              <Text style={styles.folderStatNumber}>{folder.files?.length || 0}</Text>
+              <Text style={styles.folderStatNumber}>
+                {folder.files?.length || 0}
+              </Text>
               <Text style={styles.folderStatLabel}>Files</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.folderStatNumber}>{folder.subfolder_count || 0}</Text>
+              <Text style={styles.folderStatNumber}>
+                {folder.subfolder_count || 0}
+              </Text>
               <Text style={styles.folderStatLabel}>Folders</Text>
             </View>
           </View>
@@ -1468,7 +1560,11 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
           <Text style={styles.folderDate}>
             Created {formatDate(folder.created_at)}
           </Text>
-          <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color="rgba(255,255,255,0.4)"
+          />
         </View>
       </TouchableOpacity>
 
@@ -1484,7 +1580,7 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
             <Text style={styles.actionButtonText}>Files</Text>
           </TouchableOpacity>
         )}
-        
+
         {/* Edit Button */}
         <TouchableOpacity
           style={[styles.actionButton, styles.editActionButton]}
@@ -1493,7 +1589,7 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
           <Ionicons name="create" size={18} color="#FF9800" />
           <Text style={styles.actionButtonText}>Edit</Text>
         </TouchableOpacity>
-        
+
         {/* Delete Button */}
         <TouchableOpacity
           style={[styles.actionButton, styles.deleteActionButton]}
@@ -1525,7 +1621,10 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
                 {subfolder.name}
               </Text>
               {subfolder.description && (
-                <Text style={styles.modernSubfolderDescription} numberOfLines={2}>
+                <Text
+                  style={styles.modernSubfolderDescription}
+                  numberOfLines={2}
+                >
                   {subfolder.description}
                 </Text>
               )}
@@ -1535,7 +1634,9 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
           {/* Files Count */}
           <View style={styles.subfolderStatsSection}>
             <View style={styles.subfolderStatItem}>
-              <Text style={styles.subfolderStatNumber}>{subfolder.files?.length || 0}</Text>
+              <Text style={styles.subfolderStatNumber}>
+                {subfolder.files?.length || 0}
+              </Text>
               <Text style={styles.subfolderStatLabel}>Files</Text>
             </View>
           </View>
@@ -1546,7 +1647,11 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
           <Text style={styles.subfolderDate}>
             Created {formatDate(subfolder.created_at)}
           </Text>
-          <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color="rgba(255,255,255,0.4)"
+          />
         </View>
       </TouchableOpacity>
 
@@ -1560,7 +1665,7 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
           <Ionicons name="create" size={18} color="#FF9800" />
           <Text style={styles.actionButtonText}>Edit</Text>
         </TouchableOpacity>
-        
+
         {/* Delete Button */}
         <TouchableOpacity
           style={[styles.actionButton, styles.deleteActionButton]}
@@ -1584,17 +1689,19 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
 
   return (
     <View style={styles.container}>
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="rgba(255,255,255,0.6)" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search files and folders..."
-          placeholderTextColor="rgba(255,255,255,0.6)"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
+      {/* Search Bar - Only show in files view */}
+      {(currentView === "files" || currentView === "folder-files") && (
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="rgba(255,255,255,0.6)" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search files..."
+            placeholderTextColor="rgba(255,255,255,0.6)"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      )}
 
       {/* Breadcrumb Navigation */}
       <View style={styles.breadcrumbContainer}>
@@ -1641,8 +1748,25 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
             </TouchableOpacity>
           )}
 
+          {/* Create Folder Icon - Show only in folders view */}
+          {currentView === "folders" && (
+            <TouchableOpacity
+              style={styles.headerCreateFolderIcon}
+              onPress={() => {
+                setParentFolderId(null);
+                setNewFolderName("");
+                setNewFolderDescription("");
+                setShowCreateFolderModal(true);
+              }}
+            >
+              <Ionicons name="add-circle" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
+
           {/* Upload Button - Show in all views */}
-          {(currentView === "folders" || currentView === "subfolders" || currentView === "files") && (
+          {(currentView === "folders" ||
+            currentView === "subfolders" ||
+            currentView === "files") && (
             <TouchableOpacity
               style={[
                 styles.uploadButton,
@@ -1672,35 +1796,6 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
         {currentView === "folders" && (
           <>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Statistics - Only show on main folders view */}
-              <View style={styles.statisticsContainer}>
-                <Text style={styles.sectionTitle}>File Statistics</Text>
-                <View style={styles.statisticsGrid}>
-                  <View style={styles.statCard}>
-                    <Ionicons name="document-text" size={24} color="#F44336" />
-                    <Text style={styles.statNumber}>{statistics.pdfFiles}</Text>
-                    <Text style={styles.statLabel}>PDF Files</Text>
-                  </View>
-
-
-                  <View style={styles.statCard}>
-                    <Ionicons name="folder" size={24} color="#FF9800" />
-                    <Text style={styles.statNumber}>
-                      {statistics.totalFolders}
-                    </Text>
-                    <Text style={styles.statLabel}>Folders</Text>
-                  </View>
-
-                  <View style={styles.statCard}>
-                    <Ionicons name="cloud" size={24} color="#2196F3" />
-                    <Text style={styles.statNumber}>
-                      {formatFileSize(statistics.totalSize)}
-                    </Text>
-                    <Text style={styles.statLabel}>Total Size</Text>
-                  </View>
-                </View>
-              </View>
-
               {/* Folders List */}
               <Text style={styles.sectionTitle}>
                 Folders ({filteredData.length})
@@ -1725,7 +1820,10 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
         {currentView === "subfolders" && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { flex: 1, flexShrink: 1 }]} numberOfLines={2}>
+              <Text
+                style={[styles.sectionTitle, { flex: 1, flexShrink: 1 }]}
+                numberOfLines={2}
+              >
                 Subfolders in "{selectedFolder?.name}" ({filteredData.length})
               </Text>
               <TouchableOpacity
@@ -1813,7 +1911,11 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
             <ScrollView showsVerticalScrollIndicator={false}>
               {filteredData.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                  <Ionicons name="document" size={64} color="rgba(255,255,255,0.3)" />
+                  <Ionicons
+                    name="document"
+                    size={64}
+                    color="rgba(255,255,255,0.3)"
+                  />
                   <Text style={styles.emptyText}>No files found</Text>
                 </View>
               ) : (
@@ -2042,9 +2144,7 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
       >
         <View style={styles.createSubfolderModalContainer}>
           <View style={styles.createSubfolderModalHeader}>
-            <Text style={styles.createSubfolderModalTitle}>
-              Edit Subfolder
-            </Text>
+            <Text style={styles.createSubfolderModalTitle}>Edit Subfolder</Text>
             <TouchableOpacity
               style={styles.createSubfolderModalCloseButton}
               onPress={() => {
@@ -2129,9 +2229,7 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
       >
         <View style={styles.createSubfolderModalContainer}>
           <View style={styles.createSubfolderModalHeader}>
-            <Text style={styles.createSubfolderModalTitle}>
-              Edit Folder
-            </Text>
+            <Text style={styles.createSubfolderModalTitle}>Edit Folder</Text>
             <TouchableOpacity
               style={styles.createSubfolderModalCloseButton}
               onPress={() => {
@@ -2146,9 +2244,7 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
           </View>
 
           <View style={styles.createSubfolderModalContent}>
-            <Text style={styles.createSubfolderModalLabel}>
-              Folder Name *
-            </Text>
+            <Text style={styles.createSubfolderModalLabel}>Folder Name *</Text>
             <TextInput
               style={styles.createSubfolderModalInput}
               placeholder="Enter folder name..."
@@ -2208,6 +2304,91 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
         </View>
       </Modal>
 
+      {/* Create Folder Modal */}
+      <Modal
+        visible={showCreateFolderModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.createSubfolderModalContainer}>
+          <View style={styles.createSubfolderModalHeader}>
+            <Text style={styles.createSubfolderModalTitle}>
+              Create New Folder
+            </Text>
+            <TouchableOpacity
+              style={styles.createSubfolderModalCloseButton}
+              onPress={() => {
+                setShowCreateFolderModal(false);
+                setNewFolderName("");
+                setNewFolderDescription("");
+                setParentFolderId(null);
+              }}
+            >
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.createSubfolderModalContent}>
+            <Text style={styles.createSubfolderModalLabel}>Folder Name *</Text>
+            <TextInput
+              style={styles.createSubfolderModalInput}
+              placeholder="Enter folder name..."
+              placeholderTextColor="rgba(255,255,255,0.6)"
+              value={newFolderName}
+              onChangeText={setNewFolderName}
+              maxLength={50}
+            />
+
+            <Text style={styles.createSubfolderModalLabel}>
+              Description (Optional)
+            </Text>
+            <TextInput
+              style={[
+                styles.createSubfolderModalInput,
+                styles.createSubfolderModalTextArea,
+              ]}
+              placeholder="Enter description..."
+              placeholderTextColor="rgba(255,255,255,0.6)"
+              value={newFolderDescription}
+              onChangeText={setNewFolderDescription}
+              multiline
+              numberOfLines={3}
+              maxLength={200}
+            />
+
+            <View style={styles.createSubfolderModalButtons}>
+              <TouchableOpacity
+                style={styles.createSubfolderModalCancelButton}
+                onPress={() => {
+                  setShowCreateFolderModal(false);
+                  setNewFolderName("");
+                  setNewFolderDescription("");
+                  setParentFolderId(null);
+                }}
+              >
+                <Text style={styles.createSubfolderModalCancelText}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.createSubfolderModalCreateButton,
+                  !newFolderName.trim() &&
+                    styles.createSubfolderModalCreateButtonDisabled,
+                ]}
+                onPress={createNestedFolder}
+                disabled={!newFolderName.trim()}
+              >
+                <Text style={styles.createSubfolderModalCreateText}>
+                  Create Folder
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Upload Location Selection Modal */}
       <Modal
         visible={showUploadLocationModal}
@@ -2236,56 +2417,81 @@ function FileManagementScreen({ onBack }: FileManagementScreenProps) {
               Choose where to upload {pendingUploadFiles.length} file(s)
             </Text>
 
-            <ScrollView style={styles.uploadLocationList} showsVerticalScrollIndicator={false}>
-              {currentView === "folders" && folders.map((folder) => (
-                <TouchableOpacity
-                  key={folder.id}
-                  style={styles.uploadLocationItem}
-                  onPress={() => {
-                    setShowUploadLocationModal(false);
-                    handleUploadToFolder(pendingUploadFiles, folder);
-                    setPendingUploadFiles([]);
-                  }}
-                >
-                  <View style={styles.uploadLocationIcon}>
-                    <Ionicons name="folder" size={24} color="#4CAF50" />
-                  </View>
-                  <View style={styles.uploadLocationInfo}>
-                    <Text style={styles.uploadLocationName}>{folder.name}</Text>
-                    <Text style={styles.uploadLocationDetails}>
-                      {folder.files?.length || 0} files • {folder.subfolder_count || 0} subfolders
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.6)" />
-                </TouchableOpacity>
-              ))}
+            <ScrollView
+              style={styles.uploadLocationList}
+              showsVerticalScrollIndicator={false}
+            >
+              {currentView === "folders" &&
+                folders.map((folder) => (
+                  <TouchableOpacity
+                    key={folder.id}
+                    style={styles.uploadLocationItem}
+                    onPress={() => {
+                      setShowUploadLocationModal(false);
+                      handleUploadToFolder(pendingUploadFiles, folder);
+                      setPendingUploadFiles([]);
+                    }}
+                  >
+                    <View style={styles.uploadLocationIcon}>
+                      <Ionicons name="folder" size={24} color="#4CAF50" />
+                    </View>
+                    <View style={styles.uploadLocationInfo}>
+                      <Text style={styles.uploadLocationName}>
+                        {folder.name}
+                      </Text>
+                      <Text style={styles.uploadLocationDetails}>
+                        {folder.files?.length || 0} files •{" "}
+                        {folder.subfolder_count || 0} subfolders
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color="rgba(255,255,255,0.6)"
+                    />
+                  </TouchableOpacity>
+                ))}
 
-              {currentView === "subfolders" && selectedFolder && 
+              {currentView === "subfolders" &&
+                selectedFolder &&
                 subfolders
-                  .filter(sf => sf.parent_folder_id === selectedFolder.id)
+                  .filter((sf) => sf.parent_folder_id === selectedFolder.id)
                   .map((subfolder) => (
                     <TouchableOpacity
                       key={subfolder.id}
                       style={styles.uploadLocationItem}
                       onPress={() => {
                         setShowUploadLocationModal(false);
-                        handleUploadToSpecificSubfolder(pendingUploadFiles, subfolder);
+                        handleUploadToSpecificSubfolder(
+                          pendingUploadFiles,
+                          subfolder
+                        );
                         setPendingUploadFiles([]);
                       }}
                     >
                       <View style={styles.uploadLocationIcon}>
-                        <Ionicons name="folder-open" size={24} color="#2196F3" />
+                        <Ionicons
+                          name="folder-open"
+                          size={24}
+                          color="#2196F3"
+                        />
                       </View>
                       <View style={styles.uploadLocationInfo}>
-                        <Text style={styles.uploadLocationName}>{subfolder.name}</Text>
+                        <Text style={styles.uploadLocationName}>
+                          {subfolder.name}
+                        </Text>
                         <Text style={styles.uploadLocationDetails}>
-                          {subfolder.files?.length || 0} files • Created {formatDate(subfolder.created_at)}
+                          {subfolder.files?.length || 0} files • Created{" "}
+                          {formatDate(subfolder.created_at)}
                         </Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.6)" />
+                      <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color="rgba(255,255,255,0.6)"
+                      />
                     </TouchableOpacity>
-                  ))
-              }
+                  ))}
             </ScrollView>
           </View>
         </View>
@@ -2749,17 +2955,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
+  // Header Create Folder Icon
+  headerCreateFolderIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(33, 150, 243, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: "rgba(33, 150, 243, 0.4)",
+  },
   // Upload Button Styles
   uploadButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#4CAF50",
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: "#000000",
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: "#4CAF50",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
   },
@@ -3127,6 +3346,16 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(76, 175, 80, 0.15)",
     borderWidth: 1,
     borderColor: "rgba(76, 175, 80, 0.3)",
+  },
+  createFolderIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(33, 150, 243, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(33, 150, 243, 0.3)",
   },
   editActionButton: {
     backgroundColor: "rgba(255, 152, 0, 0.15)",

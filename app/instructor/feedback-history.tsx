@@ -54,13 +54,53 @@ export default function FeedbackHistoryScreen() {
     url: string;
     name: string;
   } | null>(null);
+  const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(
+    null
+  );
+  const scrollViewRef = React.useRef<ScrollView>(null);
 
   useEffect(() => {
     if (params.studentId) {
       loadStudentInfo();
       loadFeedbackHistory();
     }
-  }, [params.studentId]);
+
+    // Handle selected feedback ID from navigation params
+    if (params.selectedFeedbackId) {
+      setSelectedFeedbackId(params.selectedFeedbackId as string);
+    }
+  }, [params.studentId, params.selectedFeedbackId]);
+
+  // Listen for refresh parameter to reload data after deletion
+  useEffect(() => {
+    if (params.refresh && params.studentId) {
+      console.log("Refreshing feedback history after deletion");
+      loadFeedbackHistory();
+    }
+  }, [params.refresh]);
+
+  // Scroll to selected feedback after data loads
+  useEffect(() => {
+    if (
+      selectedFeedbackId &&
+      feedbackHistory.length > 0 &&
+      params.scrollToFeedback === "true"
+    ) {
+      const feedbackIndex = feedbackHistory.findIndex(
+        (feedback) => feedback.id.toString() === selectedFeedbackId
+      );
+
+      if (feedbackIndex !== -1) {
+        // Delay scroll to ensure layout is complete
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({
+            y: feedbackIndex * 200, // Approximate height per feedback card
+            animated: true,
+          });
+        }, 500);
+      }
+    }
+  }, [selectedFeedbackId, feedbackHistory, params.scrollToFeedback]);
 
   const loadStudentInfo = async () => {
     try {
@@ -83,11 +123,12 @@ export default function FeedbackHistoryScreen() {
       setLoading(true);
       const studentId = params.studentId;
 
-      // First, get the feedback data
+      // First, get the feedback data - ONLY from current instructor
       const { data: feedbackData, error: feedbackError } = await supabase
         .from("feedback")
         .select("*")
         .eq("student_id", studentId)
+        .eq("instructor_id", user?.id) // Filter by current instructor ID
         .order("created_at", { ascending: false });
 
       if (feedbackError) throw feedbackError;
@@ -200,166 +241,75 @@ export default function FeedbackHistoryScreen() {
   };
 
   const renderFeedbackCard = (feedback: FeedbackHistory) => (
-    <View key={feedback.id} style={styles.feedbackCard}>
-      <View style={styles.feedbackHeader}>
-        <View style={styles.feedbackInfo}>
-          <Text style={styles.sessionType}>{feedback.session_type}</Text>
-          <Text style={styles.feedbackDate}>
-            {formatDate(feedback.created_at)}
-          </Text>
-          <Text style={styles.sessionNumbers}>
-            Session {feedback.session_number} of {feedback.session_number2}
-          </Text>
-          {student && (
-            <Text style={styles.studentName}>Student: {student.name}</Text>
-          )}
-        </View>
-        <View style={styles.instructorInfo}>
-          <Text style={styles.instructorName}>{feedback.instructor_name}</Text>
-        </View>
-      </View>
-
-      <View style={styles.ratingsContainer}>
-        <View style={styles.ratingItem}>
-          <Text style={styles.ratingLabel}>General Rating:</Text>
-          {renderStars(feedback.comment)}
-          <Text style={styles.ratingValue}>({feedback.comment}/5)</Text>
-        </View>
-
-        {feedback.homework_rating > 0 && (
-          <View style={styles.ratingItem}>
-            <Text style={styles.ratingLabel}>Homework Rating:</Text>
-            {renderStars(feedback.homework_rating)}
-            <Text style={styles.ratingValue}>
-              ({feedback.homework_rating}/5)
-            </Text>
+    <View
+      key={feedback.id}
+      style={[
+        styles.compactFeedbackCard,
+        selectedFeedbackId === feedback.id.toString() &&
+          styles.selectedFeedbackCard,
+      ]}
+    >
+      {/* Visual Header with Icon */}
+      <View style={styles.compactHeader}>
+        <View style={styles.sessionTypeContainer}>
+          <View style={styles.sessionIcon}>
+            <Ionicons 
+              name={
+                feedback.session_type === "Online Theory" ? "school" :
+                feedback.session_type === "Online Practice" ? "musical-notes" :
+                "location"
+              } 
+              size={16} 
+              color="#4CAF50" 
+            />
           </View>
-        )}
+          <Text style={styles.compactSessionType}>{feedback.session_type}</Text>
+        </View>
+        <View style={styles.dateContainer}>
+          <Ionicons name="calendar" size={12} color="rgba(255,255,255,0.6)" />
+          <Text style={styles.compactDate}>
+            {new Date(feedback.created_at).toLocaleDateString()}
+          </Text>
+        </View>
       </View>
 
-      {feedback.HW_comments && (
-        <View style={styles.commentSection}>
-          <Text style={styles.commentLabel}>Homework Comments:</Text>
-          <Text style={styles.commentText}>{feedback.HW_comments}</Text>
+      {/* Visual Rating Section */}
+      <View style={styles.compactRating}>
+        <View style={styles.ratingIconContainer}>
+          <Ionicons name="trophy" size={14} color="#FFD700" />
         </View>
-      )}
+        <View style={styles.compactStars}>
+          {renderStars(feedback.comment || 0)}
+        </View>
+        <View style={styles.ratingBadge}>
+          <Text style={styles.compactRatingValue}>{feedback.comment || 0}/5</Text>
+        </View>
+      </View>
 
+      {/* Visual Feedback Text */}
       {feedback.feedback && (
-        <View style={styles.commentSection}>
-          <Text style={styles.commentLabel}>Additional Feedback:</Text>
-          <Text style={styles.commentText}>{feedback.feedback}</Text>
+        <View style={styles.compactFeedback}>
+          <View style={styles.feedbackIconContainer}>
+            <Ionicons name="chatbubble-ellipses" size={12} color="rgba(255,255,255,0.6)" />
+          </View>
+          <Text style={styles.compactFeedbackText} numberOfLines={2}>
+            {feedback.feedback}
+          </Text>
         </View>
       )}
 
-      {feedback.sheet_files && feedback.sheet_files.length > 0 && (
-        <View style={styles.filesSection}>
-          <View style={styles.filesSectionHeader}>
-            <Ionicons name="folder-open" size={18} color="#4CAF50" />
-            <Text style={styles.filesLabel}>
-              Attached Files ({feedback.sheet_files.length})
-            </Text>
-          </View>
-          <View style={styles.filesList}>
-            {feedback.sheet_files.map((file: any, index: number) => {
-              const fileId = `${feedback.id}-${index}`;
-              const isPdf = file.type === "pdf" || file.name.toLowerCase().endsWith(".pdf");
-              const isExpanded = expandedFiles.has(fileId);
-              
-              return (
-                <View key={index} style={styles.fileCard}>
-                  <View style={styles.fileCardHeader}>
-                    <View
-                      style={[
-                        styles.fileIconContainer,
-                        { backgroundColor: getFileColor(file.type || "", file.name) },
-                      ]}
-                    >
-                      <Ionicons
-                        name={getFileIcon(file.type || "", file.name) as any}
-                        size={20}
-                        color="#FFFFFF"
-                      />
-                    </View>
-                    <View style={styles.fileCardInfo}>
-                      <Text style={styles.fileCardName} numberOfLines={1}>{file.name}</Text>
-                      {file.size && (
-                        <Text style={styles.fileCardSize}>
-                          {(file.size / 1024).toFixed(1)} KB
-                        </Text>
-                      )}
-                    </View>
-                    <View style={styles.fileCardActions}>
-                      {isPdf && file.url && (
-                        <TouchableOpacity
-                          style={styles.previewButton}
-                          onPress={() => toggleFilePreview(fileId)}
-                        >
-                          <Ionicons
-                            name={isExpanded ? "eye-off" : "eye"}
-                            size={16}
-                            color="#2196F3"
-                          />
-                        </TouchableOpacity>
-                      )}
-                      {isPdf && file.url && (
-                        <TouchableOpacity
-                          style={styles.fullscreenButton}
-                          onPress={() => setFullScreenPdf({ url: file.url, name: file.name })}
-                        >
-                          <Ionicons name="expand" size={16} color="#4CAF50" />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </View>
-
-                  {/* Inline PDF Preview */}
-                  {isPdf && isExpanded && file.url && (
-                    <View style={styles.pdfPreviewContainer}>
-                      <View style={styles.pdfPreviewHeader}>
-                        <Text style={styles.pdfPreviewTitle}>Preview</Text>
-                        <TouchableOpacity
-                          style={styles.pdfFullscreenButton}
-                          onPress={() => setFullScreenPdf({ url: file.url, name: file.name })}
-                        >
-                          <Ionicons name="expand" size={12} color="#FFFFFF" />
-                          <Text style={styles.pdfFullscreenText}>Full Screen</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <View style={styles.pdfPreviewWrapper}>
-                        <WebView
-                          source={{
-                            uri: `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(
-                              file.url
-                            )}`,
-                          }}
-                          style={styles.pdfPreview}
-                          startInLoadingState={true}
-                          renderLoading={() => (
-                            <View style={styles.pdfPreviewLoading}>
-                              <ActivityIndicator size="small" color="#1c463a" />
-                              <Text style={styles.pdfPreviewLoadingText}>
-                                Loading PDF...
-                              </Text>
-                            </View>
-                          )}
-                          onError={(error: any) => {
-                            console.error("PDF preview error:", error);
-                          }}
-                          scrollEnabled={true}
-                          scalesPageToFit={true}
-                          javaScriptEnabled={true}
-                          domStorageEnabled={true}
-                          allowsInlineMediaPlayback={true}
-                        />
-                      </View>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        </View>
-      )}
+      {/* View Details Button */}
+      <TouchableOpacity 
+        style={styles.viewDetailsButton}
+        onPress={() => router.push({
+          pathname: "/instructor/feedback-details",
+          params: { id: feedback.id.toString() }
+        })}
+      >
+        <Ionicons name="information-circle" size={16} color="#4CAF50" />
+        <Text style={styles.viewDetailsText}>View More Details</Text>
+        <Ionicons name="chevron-forward" size={16} color="#4CAF50" />
+      </TouchableOpacity>
     </View>
   );
 
@@ -392,7 +342,11 @@ export default function FeedbackHistoryScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {feedbackHistory.length > 0 ? (
           <>
             <View style={styles.summaryContainer}>
@@ -486,7 +440,9 @@ export default function FeedbackHistoryScreen() {
               renderLoading={() => (
                 <View style={styles.fullScreenLoading}>
                   <ActivityIndicator size="large" color="#1c463a" />
-                  <Text style={styles.fullScreenLoadingText}>Loading PDF...</Text>
+                  <Text style={styles.fullScreenLoadingText}>
+                    Loading PDF...
+                  </Text>
                 </View>
               )}
               onError={(error: any) => {
@@ -908,5 +864,149 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#1c463a",
     fontWeight: "600",
+  },
+
+  // Selected Feedback Highlighting
+  selectedFeedbackCard: {
+    borderColor: "#4CAF50",
+    borderWidth: 2,
+  },
+
+  // Compact Feedback Card Styles
+  compactFeedbackCard: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  compactHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sessionTypeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  sessionIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(76,175,80,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: "rgba(76,175,80,0.3)",
+  },
+  compactSessionType: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.3,
+  },
+  dateContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.12)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
+  compactDate: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.6)",
+    marginLeft: 4,
+  },
+  compactRating: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  ratingIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,215,0,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,215,0,0.2)",
+  },
+  compactStars: {
+    flexDirection: "row",
+    marginRight: 12,
+    gap: 2,
+  },
+  ratingBadge: {
+    backgroundColor: "rgba(255,215,0,0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,215,0,0.3)",
+  },
+  compactRatingValue: {
+    fontSize: 12,
+    color: "#FFD700",
+    fontWeight: "700",
+  },
+  compactFeedback: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    padding: 12,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: "rgba(255,255,255,0.3)",
+  },
+  feedbackIconContainer: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+    marginTop: 1,
+  },
+  compactFeedbackText: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.95)",
+    lineHeight: 20,
+    flex: 1,
+    fontWeight: "400",
+  },
+
+  // View Details Button Styles
+  viewDetailsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(76,175,80,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(76,175,80,0.3)",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 12,
+  },
+  viewDetailsText: {
+    fontSize: 13,
+    color: "#4CAF50",
+    fontWeight: "600",
+    marginHorizontal: 6,
   },
 });
