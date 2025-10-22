@@ -17,15 +17,7 @@ A mobile application for music instructors to manage students, provide feedback,
 - React Native with Expo
 - TypeScript
 
-## Installation
 
-```bash
-# Install dependencies
-npm install
-
-# Start the app
-npx expo start
-```
 
 ## Features
 
@@ -35,6 +27,6 @@ npx expo start
 - Sheet music library
 - Feedback history
 
-## License
+## Created By
 
-MIT
+Mohammed Mahmoud :)
