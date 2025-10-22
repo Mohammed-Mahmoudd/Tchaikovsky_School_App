@@ -5,7 +5,7 @@ A mobile application for music instructors to manage students, provide feedback,
 ## Screenshots
 
 <div align="center">
-  <img src="screenshots/login.png" width="200" alt="Login"/>
+  <img src="screenshots/login.jpg" width="200" alt="Login"/>
   <img src="screenshots/dashboard.png" width="200" alt="Dashboard"/>
   <img src="screenshots/feedback.png" width="200" alt="Feedback"/>
   <img src="screenshots/students.png" width="200" alt="Students"/>
